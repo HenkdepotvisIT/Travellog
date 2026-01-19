@@ -22,7 +22,9 @@ export function useDataExport() {
         const a = document.createElement("a");
         a.href = url;
         a.download = `travel-log-backup-${new Date().toISOString().split("T")[0]}.json`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } else {
         // Native: Share or save to file

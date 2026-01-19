@@ -54,12 +54,18 @@ export default function HomeScreen() {
         </View>
         <View style={styles.headerButtons}>
           <Pressable
-            style={styles.connectionButton}
+            style={styles.headerButton}
             onPress={() => setShowConnectionModal(true)}
           >
-            <Text style={styles.connectionButtonText}>
-              {isConnected ? "⚙️" : "🔗"}
+            <Text style={styles.headerButtonText}>
+              {isConnected ? "🔗" : "🔗"}
             </Text>
+          </Pressable>
+          <Pressable
+            style={styles.headerButton}
+            onPress={() => router.push("/settings")}
+          >
+            <Text style={styles.headerButtonText}>⚙️</Text>
           </Pressable>
         </View>
       </View>
@@ -181,7 +187,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
   },
-  connectionButton: {
+  headerButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -189,7 +195,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  connectionButtonText: {
+  headerButtonText: {
     fontSize: 20,
   },
   viewToggle: {

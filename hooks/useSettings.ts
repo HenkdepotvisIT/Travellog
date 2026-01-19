@@ -62,5 +62,6 @@ export function useSettings() {
     isLoading,
     updateSettings,
     resetSettings,
+    DEFAULT_SETTINGS,
   };
 }
