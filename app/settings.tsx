@@ -17,11 +17,20 @@ import { useSettings } from "../hooks/useSettings";
 import { useDataExport } from "../hooks/useDataExport";
 import { useAdventures } from "../hooks/useAdventures";
 import { storageService } from "../services/storageService";
+import ProxyHeaderEditor from "../components/ProxyHeaderEditor";
 
 export default function SettingsScreen() {
-  const { isConnected, serverUrl, apiKey, connect, disconnect, testConnection } =
+  const { isConnected, serverUrl, apiKey, connect, disconnect, testConnection, reconnectWithHeaders } =
     useImmichConnection();
-  const { settings, updateSettings, resetSettings } = useSettings();
+  const { 
+    settings, 
+    updateSettings, 
+    resetSettings,
+    addProxyHeader,
+    updateProxyHeader,
+    deleteProxyHeader,
+    toggleProxyHeader,
+  } = useSettings();
   const { exportData, importData, clearAllData, isExporting, isImporting } = useDataExport();
   const { syncStatus, syncWithImmich } = useAdventures({ dateRange: null, country: null, minDistance: 0 });
 
@@ -44,7 +53,7 @@ export default function SettingsScreen() {
       return;
     }
     setIsTesting(true);
-    const result = await testConnection(newServerUrl, newApiKey || apiKey || "");
+    const result = await testConnection(newServerUrl, newApiKey || apiKey || "", settings.proxyHeaders);
     setIsTesting(false);
     Alert.alert(result.success ? "✅ Success" : "❌ Error", result.message);
   };
@@ -55,7 +64,7 @@ export default function SettingsScreen() {
       return;
     }
     setIsConnecting(true);
-    const result = await connect(newServerUrl, newApiKey);
+    const result = await connect(newServerUrl, newApiKey, settings.proxyHeaders);
     setIsConnecting(false);
     if (result.success) {
       Alert.alert("✅ Connected", "Successfully connected to Immich server");
@@ -113,7 +122,7 @@ export default function SettingsScreen() {
   const handleResetSettings = () => {
     Alert.alert(
       "Reset Settings",
-      "This will reset all settings to their default values. Your adventures will not be affected.",
+      "This will reset all settings to their default values, including proxy headers. Your adventures will not be affected.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -130,7 +139,7 @@ export default function SettingsScreen() {
   const handleClearAllData = () => {
     Alert.alert(
       "⚠️ Delete All Data",
-      "This will permanently delete ALL your data including:\n\n• All adventures\n• All narratives and stories\n• All settings\n• Immich connection\n\nThis action cannot be undone!",
+      "This will permanently delete ALL your data including:\n\n• All adventures\n• All narratives and stories\n• All settings\n• Proxy headers\n• Immich connection\n\nThis action cannot be undone!",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -157,16 +166,25 @@ export default function SettingsScreen() {
     await syncWithImmich();
   };
 
+  const handleProxyHeadersChanged = async () => {
+    // Reconnect with updated headers if already connected
+    if (isConnected) {
+      await reconnectWithHeaders();
+    }
+  };
+
   const SettingsSection = ({ 
     title, 
     icon, 
     children, 
-    id 
+    id,
+    badge,
   }: { 
     title: string; 
     icon: string; 
     children: React.ReactNode;
     id: string;
+    badge?: string | number;
   }) => (
     <View style={styles.section}>
       <Pressable 
@@ -176,6 +194,11 @@ export default function SettingsScreen() {
         <View style={styles.sectionTitleRow}>
           <Text style={styles.sectionIcon}>{icon}</Text>
           <Text style={styles.sectionTitle}>{title}</Text>
+          {badge !== undefined && badge !== 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{badge}</Text>
+            </View>
+          )}
         </View>
         <Text style={styles.sectionChevron}>
           {activeSection === id ? "▼" : "▶"}
@@ -206,6 +229,8 @@ export default function SettingsScreen() {
       {children}
     </View>
   );
+
+  const enabledHeadersCount = (settings.proxyHeaders || []).filter(h => h.enabled && h.key && h.value).length;
 
   return (
     <View style={styles.container}>
@@ -245,6 +270,13 @@ export default function SettingsScreen() {
             <Text style={styles.lastSyncText}>
               Last synced: {new Date(syncStatus.lastSyncTime).toLocaleString()}
             </Text>
+          )}
+          {enabledHeadersCount > 0 && (
+            <View style={styles.proxyBadge}>
+              <Text style={styles.proxyBadgeText}>
+                🔒 {enabledHeadersCount} proxy header{enabledHeadersCount > 1 ? "s" : ""} active
+              </Text>
+            </View>
           )}
         </View>
 
@@ -323,6 +355,34 @@ export default function SettingsScreen() {
               </Pressable>
             )}
           </View>
+        </SettingsSection>
+
+        {/* Proxy Headers */}
+        <SettingsSection 
+          title="Proxy Headers" 
+          icon="🔐" 
+          id="proxy"
+          badge={enabledHeadersCount}
+        >
+          <ProxyHeaderEditor
+            headers={settings.proxyHeaders || []}
+            onAdd={async () => {
+              await addProxyHeader();
+              handleProxyHeadersChanged();
+            }}
+            onUpdate={async (id, updates) => {
+              await updateProxyHeader(id, updates);
+              handleProxyHeadersChanged();
+            }}
+            onDelete={async (id) => {
+              await deleteProxyHeader(id);
+              handleProxyHeadersChanged();
+            }}
+            onToggle={async (id) => {
+              await toggleProxyHeader(id);
+              handleProxyHeadersChanged();
+            }}
+          />
         </SettingsSection>
 
         {/* Adventure Clustering */}
@@ -643,6 +703,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  proxyBadge: {
+    backgroundColor: "#1e3a5f",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: 12,
+    alignSelf: "flex-start",
+  },
+  proxyBadgeText: {
+    color: "#60a5fa",
+    fontSize: 12,
+    fontWeight: "500",
+  },
   section: {
     backgroundColor: "#1e293b",
     borderRadius: 16,
@@ -667,6 +740,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
     color: "#ffffff",
+  },
+  badge: {
+    backgroundColor: "#3b82f6",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  badgeText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "600",
   },
   sectionChevron: {
     color: "#64748b",

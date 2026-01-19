@@ -1,26 +1,45 @@
 import axios, { AxiosInstance } from "axios";
-import { MediaItem } from "../types";
+import { MediaItem, ProxyHeader } from "../types";
 
 class ImmichApi {
   private client: AxiosInstance | null = null;
   private baseUrl: string = "";
   private apiKey: string = "";
+  private proxyHeaders: ProxyHeader[] = [];
 
-  configure(baseUrl: string, apiKey: string) {
+  configure(baseUrl: string, apiKey: string, proxyHeaders: ProxyHeader[] = []) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
     this.apiKey = apiKey;
+    this.proxyHeaders = proxyHeaders;
 
     if (baseUrl && apiKey) {
+      // Build custom headers from proxy headers
+      const customHeaders: Record<string, string> = {
+        "x-api-key": apiKey,
+        "Content-Type": "application/json",
+      };
+
+      // Add enabled proxy headers
+      proxyHeaders
+        .filter((h) => h.enabled && h.key && h.value)
+        .forEach((h) => {
+          customHeaders[h.key] = h.value;
+        });
+
       this.client = axios.create({
         baseURL: `${this.baseUrl}/api`,
-        headers: {
-          "x-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
+        headers: customHeaders,
         timeout: 30000,
       });
     } else {
       this.client = null;
+    }
+  }
+
+  updateProxyHeaders(proxyHeaders: ProxyHeader[]) {
+    this.proxyHeaders = proxyHeaders;
+    if (this.baseUrl && this.apiKey) {
+      this.configure(this.baseUrl, this.apiKey, proxyHeaders);
     }
   }
 
@@ -113,6 +132,10 @@ class ImmichApi {
 
   getFullImageUrl(assetId: string): string {
     return `${this.baseUrl}/api/asset/file/${assetId}`;
+  }
+
+  getProxyHeaders(): ProxyHeader[] {
+    return this.proxyHeaders;
   }
 }
 

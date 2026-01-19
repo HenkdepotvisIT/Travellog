@@ -50,6 +50,13 @@ export interface MediaItem {
   } | null;
 }
 
+export interface ProxyHeader {
+  id: string;
+  key: string;
+  value: string;
+  enabled: boolean;
+}
+
 export interface AdventureFilters {
   dateRange: { start: Date; end: Date } | null;
   country: string | null;
@@ -73,6 +80,7 @@ export interface AppSettings {
   theme?: "dark" | "light" | "system";
   mapStyle?: string;
   defaultView?: "map" | "timeline";
+  proxyHeaders?: ProxyHeader[];
 }
 
 export interface SyncStatus {
