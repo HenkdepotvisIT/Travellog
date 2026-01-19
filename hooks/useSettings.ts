@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-export interface AppSettings {
-  clusterTimeWindow: number;
-  clusterDistanceKm: number;
-  minPhotosPerAdventure: number;
-  showRouteLines: boolean;
-  autoGenerateSummaries: boolean;
-}
+import { storageService } from "../services/storageService";
+import { AppSettings } from "../types";
 
 const DEFAULT_SETTINGS: AppSettings = {
   clusterTimeWindow: 24,
@@ -15,9 +8,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   minPhotosPerAdventure: 5,
   showRouteLines: true,
   autoGenerateSummaries: true,
+  theme: "dark",
+  mapStyle: "default",
+  defaultView: "map",
 };
-
-const STORAGE_KEY = "app_settings";
 
 export function useSettings() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
@@ -29,9 +23,9 @@ export function useSettings() {
 
   const loadSettings = async () => {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      const stored = await storageService.getSettings();
       if (stored) {
-        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
+        setSettings({ ...DEFAULT_SETTINGS, ...stored });
       }
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -46,7 +40,7 @@ export function useSettings() {
       setSettings(newSettings);
 
       try {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+        await storageService.saveSettings(newSettings);
       } catch (error) {
         console.error("Failed to save settings:", error);
       }
@@ -57,7 +51,7 @@ export function useSettings() {
   const resetSettings = useCallback(async () => {
     setSettings(DEFAULT_SETTINGS);
     try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      await storageService.saveSettings(DEFAULT_SETTINGS);
     } catch (error) {
       console.error("Failed to reset settings:", error);
     }

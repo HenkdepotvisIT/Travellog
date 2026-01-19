@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
+import { storageService } from "../services/storageService";
 import { immichApi } from "../services/immichApi";
 import { clusterMediaIntoAdventures } from "../services/clusteringService";
-import { Adventure, AdventureFilters } from "../types";
+import { Adventure, AdventureFilters, SyncStatus } from "../types";
 
-// Mock data for demo purposes
-const MOCK_ADVENTURES: Adventure[] = [
+// Demo data for first-time users
+const DEMO_ADVENTURES: Adventure[] = [
   {
-    id: "1",
+    id: "demo-1",
     title: "Japanese Spring Adventure",
     location: "Japan",
     startDate: "Mar 15, 2024",
@@ -43,9 +44,11 @@ const MOCK_ADVENTURES: Adventure[] = [
       "Experienced authentic ramen in Osaka",
       "Visited the iconic Fushimi Inari shrine",
     ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: "2",
+    id: "demo-2",
     title: "Italian Summer Escape",
     location: "Italy",
     startDate: "Jun 5, 2024",
@@ -82,9 +85,11 @@ const MOCK_ADVENTURES: Adventure[] = [
       "Gondola ride through Venice canals",
       "Authentic pasta making class in Rome",
     ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: "3",
+    id: "demo-3",
     title: "Nordic Winter Wonderland",
     location: "Norway",
     startDate: "Dec 10, 2023",
@@ -117,6 +122,8 @@ const MOCK_ADVENTURES: Adventure[] = [
       "Visited the Arctic Cathedral",
       "Experienced polar night phenomenon",
     ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -124,35 +131,68 @@ export function useAdventures(filters: AdventureFilters) {
   const [adventures, setAdventures] = useState<Adventure[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
+    lastSyncTime: null,
+    isSyncing: false,
+    error: null,
+  });
 
-  const fetchAdventures = useCallback(async () => {
+  // Load adventures from storage on mount
+  const loadAdventures = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // In a real implementation, this would fetch from Immich API
-      // const media = await immichApi.getAllMedia();
-      // const clustered = clusterMediaIntoAdventures(media);
-      // setAdventures(clustered);
-
-      // For demo, use mock data
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Get stored adventures
+      let storedAdventures = await storageService.getAdventures();
       
-      let filtered = [...MOCK_ADVENTURES];
-
-      if (filters.dateRange) {
-        // Apply date filter
+      // If no stored adventures, use demo data and save it
+      if (storedAdventures.length === 0) {
+        storedAdventures = DEMO_ADVENTURES;
+        await storageService.saveAdventures(storedAdventures);
       }
 
+      // Get favorites and hidden status
+      const [favorites, hidden] = await Promise.all([
+        storageService.getFavorites(),
+        storageService.getHiddenAdventures(),
+      ]);
+
+      // Merge with favorites/hidden status
+      const adventuresWithStatus = storedAdventures.map((adventure) => ({
+        ...adventure,
+        isFavorite: favorites.includes(adventure.id),
+        isHidden: hidden.includes(adventure.id),
+      }));
+
+      // Apply filters
+      let filtered = adventuresWithStatus;
+
+      // Filter hidden unless explicitly showing
+      if (!filters.showHidden) {
+        filtered = filtered.filter((a) => !a.isHidden);
+      }
+
+      // Filter favorites only
+      if (filters.showFavoritesOnly) {
+        filtered = filtered.filter((a) => a.isFavorite);
+      }
+
+      // Filter by country
       if (filters.country) {
         filtered = filtered.filter((a) =>
           a.location.toLowerCase().includes(filters.country!.toLowerCase())
         );
       }
 
+      // Filter by minimum distance
       if (filters.minDistance > 0) {
         filtered = filtered.filter((a) => a.distance >= filters.minDistance);
       }
+
+      // Get last sync time
+      const lastSyncTime = await storageService.getLastSyncTime();
+      setSyncStatus((prev) => ({ ...prev, lastSyncTime }));
 
       setAdventures(filtered);
     } catch (err) {
@@ -163,14 +203,128 @@ export function useAdventures(filters: AdventureFilters) {
     }
   }, [filters]);
 
+  // Sync with Immich server
+  const syncWithImmich = useCallback(async () => {
+    setSyncStatus((prev) => ({ ...prev, isSyncing: true, error: null }));
+
+    try {
+      // Fetch media from Immich
+      const media = await immichApi.getMediaWithLocation();
+      
+      // Cache the media
+      await storageService.cacheMedia(media);
+
+      // Get settings for clustering
+      const settings = await storageService.getSettings();
+      
+      // Cluster into adventures
+      const clusteredAdventures = clusterMediaIntoAdventures(media, {
+        timeWindowHours: settings?.clusterTimeWindow || 24,
+        distanceThresholdKm: settings?.clusterDistanceKm || 50,
+        minPhotos: settings?.minPhotosPerAdventure || 5,
+      });
+
+      // Merge with existing custom data (narratives, etc.)
+      const existingAdventures = await storageService.getAdventures();
+      const customData = await storageService.getAllCustomData();
+      const narratives = await storageService.getAllNarratives();
+
+      const mergedAdventures = clusteredAdventures.map((adventure) => {
+        const existing = existingAdventures.find((a) => a.id === adventure.id);
+        const custom = customData[adventure.id];
+        const narrative = narratives[adventure.id];
+
+        return {
+          ...adventure,
+          ...custom,
+          narrative: narrative || adventure.narrative,
+          createdAt: existing?.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      // Save merged adventures
+      await storageService.saveAdventures(mergedAdventures);
+
+      setSyncStatus({
+        lastSyncTime: new Date(),
+        isSyncing: false,
+        error: null,
+      });
+
+      // Reload adventures
+      await loadAdventures();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Sync failed";
+      setSyncStatus((prev) => ({
+        ...prev,
+        isSyncing: false,
+        error: errorMessage,
+      }));
+      console.error("Sync failed:", err);
+    }
+  }, [loadAdventures]);
+
+  // Toggle favorite
+  const toggleFavorite = useCallback(async (adventureId: string) => {
+    const isFavorite = await storageService.isFavorite(adventureId);
+    
+    if (isFavorite) {
+      await storageService.removeFavorite(adventureId);
+    } else {
+      await storageService.addFavorite(adventureId);
+    }
+
+    // Update local state
+    setAdventures((prev) =>
+      prev.map((a) =>
+        a.id === adventureId ? { ...a, isFavorite: !isFavorite } : a
+      )
+    );
+  }, []);
+
+  // Hide adventure
+  const hideAdventure = useCallback(async (adventureId: string) => {
+    await storageService.hideAdventure(adventureId);
+    
+    // Remove from local state if not showing hidden
+    if (!filters.showHidden) {
+      setAdventures((prev) => prev.filter((a) => a.id !== adventureId));
+    } else {
+      setAdventures((prev) =>
+        prev.map((a) =>
+          a.id === adventureId ? { ...a, isHidden: true } : a
+        )
+      );
+    }
+  }, [filters.showHidden]);
+
+  // Unhide adventure
+  const unhideAdventure = useCallback(async (adventureId: string) => {
+    await storageService.unhideAdventure(adventureId);
+    await loadAdventures();
+  }, [loadAdventures]);
+
+  // Delete adventure
+  const deleteAdventure = useCallback(async (adventureId: string) => {
+    await storageService.deleteAdventure(adventureId);
+    setAdventures((prev) => prev.filter((a) => a.id !== adventureId));
+  }, []);
+
   useEffect(() => {
-    fetchAdventures();
-  }, [fetchAdventures]);
+    loadAdventures();
+  }, [loadAdventures]);
 
   return {
     adventures,
     loading,
     error,
-    refresh: fetchAdventures,
+    syncStatus,
+    refresh: loadAdventures,
+    syncWithImmich,
+    toggleFavorite,
+    hideAdventure,
+    unhideAdventure,
+    deleteAdventure,
   };
 }

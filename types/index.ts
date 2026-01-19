@@ -26,6 +26,10 @@ export interface Adventure {
   narrative: string;
   aiSummary: string;
   highlights: string[];
+  isFavorite?: boolean;
+  isHidden?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MediaItem {
@@ -50,10 +54,29 @@ export interface AdventureFilters {
   dateRange: { start: Date; end: Date } | null;
   country: string | null;
   minDistance: number;
+  showFavoritesOnly?: boolean;
+  showHidden?: boolean;
 }
 
 export interface ImmichConnection {
   serverUrl: string;
   apiKey: string;
   isConnected: boolean;
+}
+
+export interface AppSettings {
+  clusterTimeWindow: number;
+  clusterDistanceKm: number;
+  minPhotosPerAdventure: number;
+  showRouteLines: boolean;
+  autoGenerateSummaries: boolean;
+  theme?: "dark" | "light" | "system";
+  mapStyle?: string;
+  defaultView?: "map" | "timeline";
+}
+
+export interface SyncStatus {
+  lastSyncTime: Date | null;
+  isSyncing: boolean;
+  error: string | null;
 }

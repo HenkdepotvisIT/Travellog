@@ -12,11 +12,14 @@ import {
 import { router } from "expo-router";
 import { useImmichConnection } from "../hooks/useImmichConnection";
 import { useSettings } from "../hooks/useSettings";
+import { useDataExport } from "../hooks/useDataExport";
+import { storageService } from "../services/storageService";
 
 export default function SettingsScreen() {
   const { isConnected, serverUrl, apiKey, connect, disconnect, testConnection } =
     useImmichConnection();
   const { settings, updateSettings } = useSettings();
+  const { exportData, clearAllData, isExporting } = useDataExport();
 
   const [newServerUrl, setNewServerUrl] = useState(serverUrl || "");
   const [newApiKey, setNewApiKey] = useState(apiKey || "");
@@ -37,7 +40,57 @@ export default function SettingsScreen() {
       Alert.alert("Error", "Please enter both server URL and API key");
       return;
     }
-    await connect(newServerUrl, newApiKey);
+    const result = await connect(newServerUrl, newApiKey);
+    Alert.alert(
+      result.success ? "Success" : "Error",
+      result.message
+    );
+  };
+
+  const handleExportData = async () => {
+    const result = await exportData();
+    if (result.success) {
+      Alert.alert("Success", "Data exported successfully");
+    } else {
+      Alert.alert("Error", result.error || "Export failed");
+    }
+  };
+
+  const handleClearCache = async () => {
+    Alert.alert(
+      "Clear Cache",
+      "This will clear cached thumbnails and media data. Your adventures and settings will be preserved.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            await storageService.clearMediaCache();
+            Alert.alert("Success", "Cache cleared");
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearAllData = async () => {
+    Alert.alert(
+      "Clear All Data",
+      "This will permanently delete all your adventures, settings, and cached data. This cannot be undone!",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Everything",
+          style: "destructive",
+          onPress: async () => {
+            await clearAllData();
+            Alert.alert("Success", "All data cleared. The app will now restart with demo data.");
+            router.replace("/");
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -129,7 +182,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>🗺️ Adventure Clustering</Text>
 
           <View style={styles.settingRow}>
-            <View>
+            <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Time Window (hours)</Text>
               <Text style={styles.settingDescription}>
                 Photos within this time are grouped together
@@ -146,7 +199,7 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.settingRow}>
-            <View>
+            <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Distance Threshold (km)</Text>
               <Text style={styles.settingDescription}>
                 Maximum distance between photos in same adventure
@@ -163,7 +216,7 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.settingRow}>
-            <View>
+            <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Minimum Photos</Text>
               <Text style={styles.settingDescription}>
                 Minimum photos to create an adventure
@@ -185,7 +238,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>🎨 Display</Text>
 
           <View style={styles.settingRow}>
-            <View>
+            <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Show Route Lines</Text>
               <Text style={styles.settingDescription}>
                 Display travel routes on map
@@ -200,7 +253,7 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.settingRow}>
-            <View>
+            <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Auto-generate Summaries</Text>
               <Text style={styles.settingDescription}>
                 Use AI to create adventure narratives
@@ -215,17 +268,60 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Cache & Data */}
+        {/* Data Management */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💾 Cache & Data</Text>
+          <Text style={styles.sectionTitle}>💾 Data Management</Text>
 
-          <Pressable style={styles.dangerButton}>
-            <Text style={styles.dangerButtonText}>Clear Thumbnail Cache</Text>
+          <Pressable
+            style={styles.actionButton}
+            onPress={handleExportData}
+            disabled={isExporting}
+          >
+            <Text style={styles.actionButtonIcon}>📤</Text>
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionButtonText}>
+                {isExporting ? "Exporting..." : "Export All Data"}
+              </Text>
+              <Text style={styles.actionButtonDescription}>
+                Save your adventures and settings as a backup file
+              </Text>
+            </View>
           </Pressable>
 
-          <Pressable style={[styles.dangerButton, { marginTop: 12 }]}>
-            <Text style={styles.dangerButtonText}>Re-scan All Media</Text>
+          <Pressable style={styles.actionButton} onPress={handleClearCache}>
+            <Text style={styles.actionButtonIcon}>🗑️</Text>
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionButtonText}>Clear Thumbnail Cache</Text>
+              <Text style={styles.actionButtonDescription}>
+                Free up storage space by clearing cached images
+              </Text>
+            </View>
           </Pressable>
+
+          <Pressable
+            style={[styles.actionButton, styles.dangerAction]}
+            onPress={handleClearAllData}
+          >
+            <Text style={styles.actionButtonIcon}>⚠️</Text>
+            <View style={styles.actionButtonContent}>
+              <Text style={[styles.actionButtonText, styles.dangerText]}>
+                Delete All Data
+              </Text>
+              <Text style={styles.actionButtonDescription}>
+                Permanently remove all adventures and settings
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+
+        {/* About */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ℹ️ About</Text>
+          <Text style={styles.aboutText}>Travel Log v1.0.0</Text>
+          <Text style={styles.aboutDescription}>
+            Automatically organize your travel photos into beautiful adventures.
+            Connect to your Immich server to sync your media.
+          </Text>
         </View>
 
         <View style={{ height: 100 }} />
@@ -355,6 +451,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#334155",
   },
+  settingInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
   settingLabel: {
     color: "#ffffff",
     fontSize: 16,
@@ -364,7 +464,6 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontSize: 12,
     marginTop: 2,
-    maxWidth: 220,
   },
   numberInput: {
     backgroundColor: "#0f172a",
@@ -376,14 +475,47 @@ const styles = StyleSheet.create({
     width: 70,
     textAlign: "center",
   },
-  dangerButton: {
-    backgroundColor: "#7f1d1d",
-    paddingVertical: 14,
-    borderRadius: 10,
+  actionButton: {
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#0f172a",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
   },
-  dangerButtonText: {
-    color: "#fca5a5",
+  actionButtonIcon: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  actionButtonContent: {
+    flex: 1,
+  },
+  actionButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
     fontWeight: "600",
+  },
+  actionButtonDescription: {
+    color: "#64748b",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  dangerAction: {
+    borderWidth: 1,
+    borderColor: "#7f1d1d",
+  },
+  dangerText: {
+    color: "#fca5a5",
+  },
+  aboutText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  aboutDescription: {
+    color: "#94a3b8",
+    fontSize: 14,
+    lineHeight: 22,
   },
 });

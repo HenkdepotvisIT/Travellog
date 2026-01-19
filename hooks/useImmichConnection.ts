@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storageService } from "../services/storageService";
 import { immichApi } from "../services/immichApi";
-
-const STORAGE_KEYS = {
-  SERVER_URL: "immich_server_url",
-  API_KEY: "immich_api_key",
-  IS_CONNECTED: "immich_is_connected",
-};
 
 export function useImmichConnection() {
   const [isConnected, setIsConnected] = useState(false);
@@ -20,17 +14,13 @@ export function useImmichConnection() {
 
   const loadStoredConnection = async () => {
     try {
-      const [storedUrl, storedKey, storedConnected] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.SERVER_URL),
-        AsyncStorage.getItem(STORAGE_KEYS.API_KEY),
-        AsyncStorage.getItem(STORAGE_KEYS.IS_CONNECTED),
-      ]);
+      const connection = await storageService.getConnection();
 
-      if (storedUrl && storedKey && storedConnected === "true") {
-        setServerUrl(storedUrl);
-        setApiKey(storedKey);
+      if (connection.serverUrl && connection.apiKey && connection.isConnected) {
+        setServerUrl(connection.serverUrl);
+        setApiKey(connection.apiKey);
         setIsConnected(true);
-        immichApi.configure(storedUrl, storedKey);
+        immichApi.configure(connection.serverUrl, connection.apiKey);
       }
     } catch (error) {
       console.error("Failed to load stored connection:", error);
@@ -45,11 +35,7 @@ export function useImmichConnection() {
       const isValid = await immichApi.validateConnection();
 
       if (isValid) {
-        await Promise.all([
-          AsyncStorage.setItem(STORAGE_KEYS.SERVER_URL, url),
-          AsyncStorage.setItem(STORAGE_KEYS.API_KEY, key),
-          AsyncStorage.setItem(STORAGE_KEYS.IS_CONNECTED, "true"),
-        ]);
+        await storageService.saveConnection(url, key);
 
         setServerUrl(url);
         setApiKey(key);
@@ -65,11 +51,7 @@ export function useImmichConnection() {
 
   const disconnect = useCallback(async () => {
     try {
-      await Promise.all([
-        AsyncStorage.removeItem(STORAGE_KEYS.SERVER_URL),
-        AsyncStorage.removeItem(STORAGE_KEYS.API_KEY),
-        AsyncStorage.setItem(STORAGE_KEYS.IS_CONNECTED, "false"),
-      ]);
+      await storageService.clearConnection();
 
       setServerUrl(null);
       setApiKey(null);
@@ -82,11 +64,11 @@ export function useImmichConnection() {
 
   const testConnection = useCallback(async (url: string, key: string) => {
     try {
-      const tempApi = { ...immichApi };
       immichApi.configure(url, key);
       const isValid = await immichApi.validateConnection();
       
-      if (!isConnected && serverUrl && apiKey) {
+      // Restore previous connection if we were connected
+      if (!isValid && isConnected && serverUrl && apiKey) {
         immichApi.configure(serverUrl, apiKey);
       }
 
@@ -95,6 +77,10 @@ export function useImmichConnection() {
         message: isValid ? "Connection successful!" : "Could not connect to server",
       };
     } catch (error) {
+      // Restore previous connection
+      if (isConnected && serverUrl && apiKey) {
+        immichApi.configure(serverUrl, apiKey);
+      }
       return {
         success: false,
         message: "Connection test failed",
