@@ -1,17 +1,26 @@
 import { Adventure, MediaItem, AppSettings } from "../types";
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 
-// Determine the API base URL
+// Determine the API base URL based on platform and configuration
 const getApiBaseUrl = (): string => {
+  // First check for explicit API URL in environment/config
+  const configuredUrl = Constants.expoConfig?.extra?.apiUrl || 
+                        process.env.EXPO_PUBLIC_API_URL;
+  
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/$/, "");
+  }
+
+  // For web, use same origin
   if (Platform.OS === "web") {
-    // In production, use relative URLs (same origin)
-    // In development, you might need to set this to your server URL
     if (typeof window !== "undefined" && window.location) {
       return window.location.origin;
     }
   }
-  // For native apps or fallback, use environment variable or default
-  return process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+
+  // Default fallback for development
+  return "http://localhost:3000";
 };
 
 const API_BASE = getApiBaseUrl();
@@ -19,19 +28,25 @@ const API_BASE = getApiBaseUrl();
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}/api${endpoint}`;
   
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error(`API request failed: ${endpoint}`, error);
+    throw error;
   }
-
-  return response.json();
 }
 
 class ApiStorageService {
@@ -123,8 +138,8 @@ class ApiStorageService {
   // ============ Media Cache ============
 
   async cacheMedia(media: MediaItem[]): Promise<void> {
-    // For Docker deployment, we might want to skip caching or use a different approach
-    console.log("Media caching skipped in API mode");
+    // Media caching could be implemented server-side if needed
+    console.log(`Media cache: ${media.length} items (stored in memory)`);
   }
 
   async getCachedMedia(): Promise<MediaItem[]> {

@@ -395,7 +395,11 @@ app.get('/api/settings', async (req, res) => {
     const result = await db.query('SELECT key, value FROM settings');
     const settings = {};
     result.rows.forEach(row => {
-      settings[row.key] = row.value;
+      try {
+        settings[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+      } catch {
+        settings[row.key] = row.value;
+      }
     });
     
     // Get proxy headers
@@ -599,6 +603,133 @@ app.post('/api/narratives/:adventureId', async (req, res) => {
   } catch (error) {
     console.error('Failed to save narrative:', error);
     res.status(500).json({ error: 'Failed to save narrative' });
+  }
+});
+
+// ============ Data Export/Import ============
+app.get('/api/export', async (req, res) => {
+  try {
+    const adventures = await db.query('SELECT * FROM adventures');
+    const settings = await db.query('SELECT key, value FROM settings');
+    const favorites = await db.query('SELECT adventure_id FROM favorites');
+    const hidden = await db.query('SELECT adventure_id FROM hidden_adventures');
+    const narratives = await db.query('SELECT adventure_id, narrative FROM narratives');
+    const connection = await db.query('SELECT server_url, api_key, is_connected FROM connection WHERE id = 1');
+    const proxyHeaders = await db.query('SELECT id, key, value, enabled FROM proxy_headers');
+    
+    const exportData = {
+      adventures: adventures.rows,
+      settings: settings.rows.reduce((acc, row) => {
+        acc[row.key] = row.value;
+        return acc;
+      }, {}),
+      favorites: favorites.rows.map(r => r.adventure_id),
+      hidden: hidden.rows.map(r => r.adventure_id),
+      narratives: narratives.rows.reduce((acc, row) => {
+        acc[row.adventure_id] = row.narrative;
+        return acc;
+      }, {}),
+      connection: connection.rows[0] || {},
+      proxyHeaders: proxyHeaders.rows,
+      exportedAt: new Date().toISOString(),
+    };
+    
+    res.json(exportData);
+  } catch (error) {
+    console.error('Failed to export data:', error);
+    res.status(500).json({ error: 'Failed to export data' });
+  }
+});
+
+app.post('/api/import', async (req, res) => {
+  try {
+    const data = req.body;
+    
+    // Import adventures
+    if (data.adventures && Array.isArray(data.adventures)) {
+      for (const adventure of data.adventures) {
+        await db.query(`
+          INSERT INTO adventures (
+            id, title, location, start_date, end_date, cover_photo,
+            media_count, distance, duration, stops, coordinates,
+            route, stop_points, photos, narrative, ai_summary,
+            highlights, is_favorite, is_hidden
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+          ON CONFLICT (id) DO UPDATE SET
+            title = EXCLUDED.title,
+            location = EXCLUDED.location,
+            updated_at = NOW()
+        `, [
+          adventure.id,
+          adventure.title,
+          adventure.location,
+          adventure.start_date,
+          adventure.end_date,
+          adventure.cover_photo,
+          adventure.media_count,
+          adventure.distance,
+          adventure.duration,
+          adventure.stops,
+          adventure.coordinates,
+          adventure.route,
+          adventure.stop_points,
+          adventure.photos,
+          adventure.narrative,
+          adventure.ai_summary,
+          adventure.highlights,
+          adventure.is_favorite,
+          adventure.is_hidden,
+        ]);
+      }
+    }
+    
+    // Import settings
+    if (data.settings) {
+      for (const [key, value] of Object.entries(data.settings)) {
+        await db.query(`
+          INSERT INTO settings (key, value, updated_at)
+          VALUES ($1, $2, NOW())
+          ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()
+        `, [key, JSON.stringify(value)]);
+      }
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to import data:', error);
+    res.status(500).json({ error: 'Failed to import data' });
+  }
+});
+
+// ============ Clear All Data ============
+app.delete('/api/data', async (req, res) => {
+  try {
+    await db.query('DELETE FROM ai_summaries');
+    await db.query('DELETE FROM narratives');
+    await db.query('DELETE FROM favorites');
+    await db.query('DELETE FROM hidden_adventures');
+    await db.query('DELETE FROM adventures');
+    await db.query('DELETE FROM proxy_headers');
+    await db.query('DELETE FROM settings');
+    await db.query('UPDATE connection SET server_url = NULL, api_key = NULL, is_connected = FALSE WHERE id = 1');
+    await db.query('UPDATE sync_status SET last_sync_time = NULL WHERE id = 1');
+    
+    // Re-insert default settings
+    await db.query(`
+      INSERT INTO settings (key, value) VALUES 
+        ('cluster_time_window', '24'),
+        ('cluster_distance_km', '50'),
+        ('min_photos_per_adventure', '5'),
+        ('show_route_lines', 'true'),
+        ('auto_generate_summaries', 'false'),
+        ('default_view', '"map"')
+      ON CONFLICT (key) DO NOTHING
+    `);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to clear data:', error);
+    res.status(500).json({ error: 'Failed to clear data' });
   }
 });
 
