@@ -16,6 +16,12 @@ interface AIConfig {
   model: string;
   autoGenerate: boolean;
   isConfigured: boolean;
+  vertexProject?: string;
+  vertexLocation?: string;
+  availableProviders?: {
+    openai: boolean;
+    vertex: boolean;
+  };
 }
 
 interface GenerateResult {
@@ -38,6 +44,10 @@ class AIService {
         model: "gpt-4o-mini",
         autoGenerate: false,
         isConfigured: false,
+        availableProviders: {
+          openai: false,
+          vertex: false,
+        },
       };
     }
   }

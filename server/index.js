@@ -16,11 +16,15 @@ app.use(express.json({ limit: '50mb' }));
 app.get('/api/health', async (req, res) => {
   try {
     await db.query('SELECT 1');
+    const aiStatus = ai.isConfigured();
     res.json({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
       database: 'connected',
-      ai: process.env.OPENAI_API_KEY ? 'configured' : 'not configured'
+      ai: {
+        openai: aiStatus.openai ? 'configured' : 'not configured',
+        vertex: aiStatus.vertex ? 'configured' : 'not configured',
+      }
     });
   } catch (error) {
     res.status(500).json({ 
@@ -221,11 +225,18 @@ app.delete('/api/adventures/:id', async (req, res) => {
 app.get('/api/ai/config', async (req, res) => {
   try {
     const config = await ai.getAIConfig();
+    const status = ai.isConfigured();
     res.json({
       provider: config.provider,
       model: config.model,
       autoGenerate: config.auto_generate,
-      isConfigured: !!process.env.OPENAI_API_KEY,
+      vertexProject: config.vertex_project,
+      vertexLocation: config.vertex_location || 'us-central1',
+      isConfigured: config.provider === 'vertex' ? status.vertex : status.openai,
+      availableProviders: {
+        openai: status.openai,
+        vertex: status.vertex,
+      },
     });
   } catch (error) {
     console.error('Failed to get AI config:', error);
@@ -235,16 +246,18 @@ app.get('/api/ai/config', async (req, res) => {
 
 app.post('/api/ai/config', async (req, res) => {
   try {
-    const { provider, model, autoGenerate } = req.body;
+    const { provider, model, autoGenerate, vertexProject, vertexLocation } = req.body;
     
     await db.query(`
       UPDATE ai_config SET
         provider = COALESCE($1, provider),
         model = COALESCE($2, model),
         auto_generate = COALESCE($3, auto_generate),
+        vertex_project = COALESCE($4, vertex_project),
+        vertex_location = COALESCE($5, vertex_location),
         updated_at = NOW()
       WHERE id = 1
-    `, [provider, model, autoGenerate]);
+    `, [provider, model, autoGenerate, vertexProject, vertexLocation]);
     
     res.json({ success: true });
   } catch (error) {
@@ -616,6 +629,7 @@ app.get('/api/export', async (req, res) => {
     const narratives = await db.query('SELECT adventure_id, narrative FROM narratives');
     const connection = await db.query('SELECT server_url, api_key, is_connected FROM connection WHERE id = 1');
     const proxyHeaders = await db.query('SELECT id, key, value, enabled FROM proxy_headers');
+    const aiConfig = await db.query('SELECT * FROM ai_config WHERE id = 1');
     
     const exportData = {
       adventures: adventures.rows,
@@ -631,6 +645,7 @@ app.get('/api/export', async (req, res) => {
       }, {}),
       connection: connection.rows[0] || {},
       proxyHeaders: proxyHeaders.rows,
+      aiConfig: aiConfig.rows[0] || {},
       exportedAt: new Date().toISOString(),
     };
     
@@ -713,6 +728,7 @@ app.delete('/api/data', async (req, res) => {
     await db.query('DELETE FROM settings');
     await db.query('UPDATE connection SET server_url = NULL, api_key = NULL, is_connected = FALSE WHERE id = 1');
     await db.query('UPDATE sync_status SET last_sync_time = NULL WHERE id = 1');
+    await db.query('UPDATE ai_config SET provider = \'openai\', model = \'gpt-4o-mini\', auto_generate = FALSE, vertex_project = NULL WHERE id = 1');
     
     // Re-insert default settings
     await db.query(`
@@ -746,5 +762,8 @@ app.get('*', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Travel Log server running on http://0.0.0.0:${PORT}`);
   console.log(`📦 Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'Not configured'}`);
-  console.log(`🤖 AI: ${process.env.OPENAI_API_KEY ? 'OpenAI configured' : 'Not configured'}`);
+  const aiStatus = ai.isConfigured();
+  console.log(`🤖 AI Providers:`);
+  console.log(`   - OpenAI: ${aiStatus.openai ? '✅ configured' : '❌ not configured'}`);
+  console.log(`   - Vertex AI: ${aiStatus.vertex ? '✅ configured' : '❌ not configured'}`);
 });

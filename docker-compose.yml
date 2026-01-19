@@ -9,13 +9,18 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/app/data
+      # Mount your GCP service account key for Vertex AI
+      - ./gcp-credentials.json:/app/gcp-credentials.json:ro
     environment:
       - NODE_ENV=production
       - PORT=3000
       - DATA_DIR=/app/data
       - DATABASE_URL=postgresql://travellog:travellog@postgres:5432/travellog
+      # OpenAI (Option 1)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      # Google Vertex AI (Option 2)
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json
     depends_on:
       postgres:
         condition: service_healthy

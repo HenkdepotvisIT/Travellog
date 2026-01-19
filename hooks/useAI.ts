@@ -6,6 +6,12 @@ interface AIConfig {
   model: string;
   autoGenerate: boolean;
   isConfigured: boolean;
+  vertexProject?: string;
+  vertexLocation?: string;
+  availableProviders?: {
+    openai: boolean;
+    vertex: boolean;
+  };
 }
 
 export function useAI() {
@@ -14,6 +20,10 @@ export function useAI() {
     model: "gpt-4o-mini",
     autoGenerate: false,
     isConfigured: false,
+    availableProviders: {
+      openai: false,
+      vertex: false,
+    },
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -114,5 +124,6 @@ export function useAI() {
     generateHighlights,
     generateStory,
     regenerateAll,
+    refreshConfig: loadConfig,
   };
 }

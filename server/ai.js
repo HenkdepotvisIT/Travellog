@@ -1,15 +1,30 @@
 const OpenAI = require('openai');
+const { VertexAI } = require('@google-cloud/vertexai');
 const db = require('./db');
 
 let openaiClient = null;
+let vertexClient = null;
+let vertexModel = null;
 
 async function getAIConfig() {
   try {
     const result = await db.query('SELECT * FROM ai_config WHERE id = 1');
-    return result.rows[0] || { provider: 'openai', model: 'gpt-4o-mini', auto_generate: false };
+    return result.rows[0] || { 
+      provider: 'openai', 
+      model: 'gpt-4o-mini', 
+      auto_generate: false,
+      vertex_project: null,
+      vertex_location: 'us-central1'
+    };
   } catch (error) {
     console.error('Failed to get AI config:', error);
-    return { provider: 'openai', model: 'gpt-4o-mini', auto_generate: false };
+    return { 
+      provider: 'openai', 
+      model: 'gpt-4o-mini', 
+      auto_generate: false,
+      vertex_project: null,
+      vertex_location: 'us-central1'
+    };
   }
 }
 
@@ -24,12 +39,94 @@ function getOpenAIClient() {
   return openaiClient;
 }
 
-async function generateSummary(adventure) {
+function getVertexClient(projectId, location = 'us-central1') {
+  // Vertex AI uses Application Default Credentials (ADC)
+  // Set GOOGLE_APPLICATION_CREDENTIALS env var to your service account key file
+  // Or run on GCP with appropriate service account
+  if (!projectId) {
+    projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.VERTEX_PROJECT_ID;
+  }
+  
+  if (!projectId) {
+    return null;
+  }
+
+  if (!vertexClient) {
+    vertexClient = new VertexAI({
+      project: projectId,
+      location: location,
+    });
+  }
+  return vertexClient;
+}
+
+function getVertexModel(config) {
+  const client = getVertexClient(config.vertex_project, config.vertex_location);
+  if (!client) return null;
+
+  const modelName = config.model || 'gemini-1.5-flash';
+  
+  return client.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      maxOutputTokens: 1024,
+      temperature: 0.7,
+    },
+  });
+}
+
+async function generateWithVertex(prompt, systemPrompt, config) {
+  const model = getVertexModel(config);
+  if (!model) {
+    throw new Error('Vertex AI not configured. Set GOOGLE_CLOUD_PROJECT and GOOGLE_APPLICATION_CREDENTIALS.');
+  }
+
+  const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
+
+  const result = await model.generateContent(fullPrompt);
+  const response = result.response;
+  const text = response.candidates[0]?.content?.parts[0]?.text || '';
+  
+  // Vertex AI doesn't provide token counts in the same way, estimate based on characters
+  const estimatedTokens = Math.ceil(text.length / 4);
+
+  return {
+    content: text.trim(),
+    tokensUsed: estimatedTokens,
+  };
+}
+
+async function generateWithOpenAI(prompt, systemPrompt, config) {
   const client = getOpenAIClient();
   if (!client) {
     throw new Error('OpenAI API key not configured');
   }
 
+  const response = await client.chat.completions.create({
+    model: config.model || 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: prompt }
+    ],
+    max_tokens: 600,
+    temperature: 0.7,
+  });
+
+  return {
+    content: response.choices[0]?.message?.content?.trim() || '',
+    tokensUsed: response.usage?.total_tokens || 0,
+  };
+}
+
+async function generateContent(prompt, systemPrompt, config) {
+  if (config.provider === 'vertex' || config.provider === 'google') {
+    return generateWithVertex(prompt, systemPrompt, config);
+  } else {
+    return generateWithOpenAI(prompt, systemPrompt, config);
+  }
+}
+
+async function generateSummary(adventure) {
   const config = await getAIConfig();
   
   const prompt = `You are a travel writer creating a brief, engaging summary of a travel adventure.
@@ -46,19 +143,10 @@ Adventure Details:
 
 Write a 2-3 sentence summary that captures the essence of this adventure. Be descriptive and evocative, mentioning specific places when available. Do not use generic phrases like "unforgettable journey" - be specific and creative.`;
 
-  try {
-    const response = await client.chat.completions.create({
-      model: config.model || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You are a skilled travel writer who creates vivid, concise summaries.' },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 200,
-      temperature: 0.7,
-    });
+  const systemPrompt = 'You are a skilled travel writer who creates vivid, concise summaries.';
 
-    const summary = response.choices[0]?.message?.content?.trim();
-    const tokensUsed = response.usage?.total_tokens || 0;
+  try {
+    const result = await generateContent(prompt, systemPrompt, config);
 
     // Cache the summary
     await db.query(`
@@ -66,9 +154,9 @@ Write a 2-3 sentence summary that captures the essence of this adventure. Be des
       VALUES ($1, 'summary', $2, $3, $4)
       ON CONFLICT (adventure_id, summary_type) 
       DO UPDATE SET content = $2, model = $3, tokens_used = $4, created_at = NOW()
-    `, [adventure.id, summary, config.model, tokensUsed]);
+    `, [adventure.id, result.content, config.model, result.tokensUsed]);
 
-    return { summary, tokensUsed };
+    return { summary: result.content, tokensUsed: result.tokensUsed };
   } catch (error) {
     console.error('Failed to generate summary:', error);
     throw error;
@@ -76,11 +164,6 @@ Write a 2-3 sentence summary that captures the essence of this adventure. Be des
 }
 
 async function generateHighlights(adventure) {
-  const client = getOpenAIClient();
-  if (!client) {
-    throw new Error('OpenAI API key not configured');
-  }
-
   const config = await getAIConfig();
   
   const prompt = `You are a travel writer creating highlight bullet points for a travel adventure.
@@ -91,7 +174,7 @@ Adventure Details:
 - Dates: ${adventure.start_date} to ${adventure.end_date}
 - Duration: ${adventure.duration} days
 - Distance traveled: ${adventure.distance} km
-- Places visited: ${adventure.stop_points?.map(s => `${s.name} (${s.photos} photos)`).join(', ') || 'Various locations'}
+- Places visited: ${adventure.stop_points?.map(s => \`\${s.name} (\${s.photos} photos)\`).join(', ') || 'Various locations'}
 
 Generate 4-6 highlight bullet points for this adventure. Each highlight should:
 - Start with an action verb (Explored, Discovered, Witnessed, Experienced, etc.)
@@ -101,30 +184,27 @@ Generate 4-6 highlight bullet points for this adventure. Each highlight should:
 
 Return ONLY a JSON array of strings, like: ["Highlight 1", "Highlight 2", "Highlight 3"]`;
 
-  try {
-    const response = await client.chat.completions.create({
-      model: config.model || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You are a travel writer. Return only valid JSON arrays.' },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 300,
-      temperature: 0.8,
-    });
+  const systemPrompt = 'You are a travel writer. Return only valid JSON arrays.';
 
-    const content = response.choices[0]?.message?.content?.trim();
-    const tokensUsed = response.usage?.total_tokens || 0;
+  try {
+    const result = await generateContent(prompt, systemPrompt, config);
     
     // Parse the JSON array
     let highlights;
     try {
-      highlights = JSON.parse(content);
+      // Try to extract JSON from the response
+      const jsonMatch = result.content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        highlights = JSON.parse(jsonMatch[0]);
+      } else {
+        highlights = JSON.parse(result.content);
+      }
       if (!Array.isArray(highlights)) {
-        highlights = [content];
+        highlights = [result.content];
       }
     } catch {
       // If parsing fails, split by newlines
-      highlights = content.split('\n').filter(h => h.trim()).map(h => h.replace(/^[-•*]\s*/, '').trim());
+      highlights = result.content.split('\n').filter(h => h.trim()).map(h => h.replace(/^[-•*]\s*/, '').trim());
     }
 
     // Cache the highlights
@@ -133,9 +213,9 @@ Return ONLY a JSON array of strings, like: ["Highlight 1", "Highlight 2", "Highl
       VALUES ($1, 'highlights', $2, $3, $4)
       ON CONFLICT (adventure_id, summary_type) 
       DO UPDATE SET content = $2, model = $3, tokens_used = $4, created_at = NOW()
-    `, [adventure.id, JSON.stringify(highlights), config.model, tokensUsed]);
+    `, [adventure.id, JSON.stringify(highlights), config.model, result.tokensUsed]);
 
-    return { highlights, tokensUsed };
+    return { highlights, tokensUsed: result.tokensUsed };
   } catch (error) {
     console.error('Failed to generate highlights:', error);
     throw error;
@@ -143,11 +223,6 @@ Return ONLY a JSON array of strings, like: ["Highlight 1", "Highlight 2", "Highl
 }
 
 async function generateStory(adventure, style = 'narrative') {
-  const client = getOpenAIClient();
-  if (!client) {
-    throw new Error('OpenAI API key not configured');
-  }
-
   const config = await getAIConfig();
   
   const stylePrompts = {
@@ -167,7 +242,7 @@ Adventure Details:
 - Distance traveled: ${adventure.distance} km
 - Number of stops: ${adventure.stops}
 - Photos taken: ${adventure.media_count}
-- Places visited: ${adventure.stop_points?.map(s => `${s.name} (${s.photos} photos)`).join(', ') || 'Various locations'}
+- Places visited: ${adventure.stop_points?.map(s => \`\${s.name} (\${s.photos} photos)\`).join(', ') || 'Various locations'}
 
 ${stylePrompts[style] || stylePrompts.narrative}
 
@@ -179,19 +254,10 @@ Write a 3-4 paragraph story (about 200-300 words) about this adventure. Include:
 
 Do not make up specific events that couldn't be inferred from the data. Focus on the journey, places, and general experiences.`;
 
-  try {
-    const response = await client.chat.completions.create({
-      model: config.model || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You are a skilled travel writer who creates engaging, authentic travel stories.' },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 600,
-      temperature: 0.8,
-    });
+  const systemPrompt = 'You are a skilled travel writer who creates engaging, authentic travel stories.';
 
-    const story = response.choices[0]?.message?.content?.trim();
-    const tokensUsed = response.usage?.total_tokens || 0;
+  try {
+    const result = await generateContent(prompt, systemPrompt, config);
 
     // Cache the story
     await db.query(`
@@ -199,9 +265,9 @@ Do not make up specific events that couldn't be inferred from the data. Focus on
       VALUES ($1, 'story', $2, $3, $4)
       ON CONFLICT (adventure_id, summary_type) 
       DO UPDATE SET content = $2, model = $3, tokens_used = $4, created_at = NOW()
-    `, [adventure.id, story, config.model, tokensUsed]);
+    `, [adventure.id, result.content, config.model, result.tokensUsed]);
 
-    return { story, tokensUsed };
+    return { story: result.content, tokensUsed: result.tokensUsed };
   } catch (error) {
     console.error('Failed to generate story:', error);
     throw error;
@@ -247,6 +313,14 @@ async function regenerateAll(adventure) {
   return results;
 }
 
+function isConfigured() {
+  const config = {
+    openai: !!process.env.OPENAI_API_KEY,
+    vertex: !!(process.env.GOOGLE_CLOUD_PROJECT || process.env.VERTEX_PROJECT_ID),
+  };
+  return config;
+}
+
 module.exports = {
   generateSummary,
   generateHighlights,
@@ -254,4 +328,5 @@ module.exports = {
   getCachedSummary,
   regenerateAll,
   getAIConfig,
+  isConfigured,
 };
