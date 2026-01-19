@@ -1,32 +1,35 @@
 # Travel Log - Docker Deployment
 
-This guide explains how to deploy Travel Log as a Docker container on your NAS.
+This guide explains how to deploy Travel Log as a Docker container with PostgreSQL database and AI features.
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
+### 1. Configure Environment
 
-1. Clone or copy the project to your NAS
-2. Run:
-   ```bash
-   docker-compose up -d
-   ```
-3. Access the app at `http://your-nas-ip:3000`
-
-### Using Docker CLI
+Copy the example environment file and add your OpenAI API key:
 
 ```bash
-# Build the image
-docker build -t travel-log .
-
-# Run the container
-docker run -d \
-  --name travel-log \
-  -p 3000:3000 \
-  -v /path/to/your/data:/app/data \
-  --restart unless-stopped \
-  travel-log
+cp .env.example .env
 ```
+
+Edit `.env` and add your OpenAI API key:
+```
+OPENAI_API_KEY=sk-your-openai-api-key-here
+```
+
+### 2. Start with Docker Compose
+
+```bash
+docker-compose up -d
+```
+
+This will start:
+- **travel-log**: The main application on port 3000
+- **postgres**: PostgreSQL database for persistent storage
+
+### 3. Access the App
+
+Open `http://your-server-ip:3000` in your browser.
 
 ## Configuration
 
@@ -35,31 +38,45 @@ docker run -d \
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `3000` | Port the server listens on |
-| `DATA_DIR` | `/app/data` | Directory for persistent data |
-| `NODE_ENV` | `production` | Node environment |
+| `DATABASE_URL` | (auto) | PostgreSQL connection string |
+| `OPENAI_API_KEY` | - | Your OpenAI API key for AI features |
+| `AI_PROVIDER` | `openai` | AI provider (currently only openai) |
 
-### Data Persistence
+### AI Features
 
-All data is stored in JSON files in the `/app/data` directory:
+To enable AI-powered summaries and highlights:
 
-- `adventures.json` - Your travel adventures
-- `narratives.json` - Adventure stories/narratives
-- `settings.json` - App settings
-- `favorites.json` - Favorited adventures
-- `hidden.json` - Hidden adventures
-- `connection.json` - Immich connection settings
-- `sync-status.json` - Last sync timestamp
+1. Get an API key from [OpenAI](https://platform.openai.com/api-keys)
+2. Add it to your `.env` file or docker-compose.yml
+3. Restart the containers
 
-**Important:** Mount a volume to `/app/data` to persist data across container restarts!
+AI features include:
+- **Summary Generation**: Creates a 2-3 sentence summary of your adventure
+- **Highlights**: Generates 4-6 bullet-point highlights
+- **Story Writing**: Creates a full narrative in different styles (personal, blog, poetic, factual)
+
+### Database
+
+Data is stored in PostgreSQL with the following tables:
+- `adventures` - Your travel adventures
+- `narratives` - Custom user stories
+- `ai_summaries` - Cached AI-generated content
+- `settings` - App configuration
+- `proxy_headers` - Cloudflare/proxy authentication headers
+
+Data persists in a Docker volume (`postgres_data`).
 
 ## Synology NAS Setup
 
-1. Open Docker in DSM
-2. Go to Registry and search for your image (or build locally)
-3. Create a container with:
-   - Port: 3000 → 3000
-   - Volume: `/volume1/docker/travel-log/data` → `/app/data`
-4. Start the container
+1. Install Docker from Package Center
+2. Create a folder for the app: `/volume1/docker/travel-log`
+3. Copy `docker-compose.yml` and `.env` to that folder
+4. SSH into your NAS and run:
+   ```bash
+   cd /volume1/docker/travel-log
+   docker-compose up -d
+   ```
+5. Access at `http://your-nas-ip:3000`
 
 ## Updating
 
@@ -75,56 +92,44 @@ docker-compose up -d
 
 ## Backup
 
-Your data is stored in the mounted volume. To backup:
-
+### Database Backup
 ```bash
-# Create a backup
-tar -czvf travel-log-backup.tar.gz /path/to/your/data
-
-# Or use the app's export feature
-curl http://localhost:3000/api/export > backup.json
+docker exec travel-log-db pg_dump -U travellog travellog > backup.sql
 ```
 
-## Restore
-
+### Restore Database
 ```bash
-# From tar backup
-tar -xzvf travel-log-backup.tar.gz -C /path/to/your/data
-
-# From JSON export
-curl -X POST -H "Content-Type: application/json" \
-  -d @backup.json http://localhost:3000/api/import
+cat backup.sql | docker exec -i travel-log-db psql -U travellog travellog
 ```
-
-## Connecting to Immich
-
-1. Open the app in your browser
-2. Click the connection button (🔗) in the header
-3. Enter your Immich server URL and API key
-4. Click Connect
-
-The connection is stored persistently, so you only need to do this once.
 
 ## Troubleshooting
 
-### Container won't start
-- Check logs: `docker logs travel-log`
-- Ensure port 3000 is not in use
-- Verify the data directory is writable
+### Database Connection Issues
+- Ensure PostgreSQL container is healthy: `docker-compose ps`
+- Check logs: `docker-compose logs postgres`
+- Wait for database to initialize on first start
 
-### Data not persisting
-- Ensure you've mounted a volume to `/app/data`
-- Check volume permissions
+### AI Not Working
+- Verify OPENAI_API_KEY is set correctly
+- Check server logs: `docker-compose logs travel-log`
+- Ensure you have API credits on your OpenAI account
 
-### Can't connect to Immich
-- Verify your Immich server is accessible from the container
-- Check that the API key is correct
-- Ensure CORS is enabled on your Immich server
+### Container Won't Start
+- Check logs: `docker-compose logs`
+- Ensure ports 3000 and 5432 are available
+- Verify Docker has enough resources
 
 ## Health Check
 
-The container includes a health check endpoint:
-
 ```bash
 curl http://localhost:3000/api/health
-# Returns: {"status":"ok","timestamp":"..."}
+```
+
+Returns:
+```json
+{
+  "status": "ok",
+  "timestamp": "...",
+  "database": "connected",
+  "ai": "configured"
+}

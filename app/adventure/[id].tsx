@@ -9,19 +9,22 @@ import {
   ActivityIndicator,
   StyleSheet,
   Dimensions,
-  FlatList,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useAdventure } from "../../hooks/useAdventure";
+import { useAI } from "../../hooks/useAI";
 import PhotoGrid from "../../components/PhotoGrid";
 import AdventureMap from "../../components/AdventureMap";
 import StatsCard from "../../components/StatsCard";
+import AIGenerateButton from "../../components/AIGenerateButton";
 
 const { width } = Dimensions.get("window");
 
 export default function AdventureDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { adventure, loading, error, updateNarrative } = useAdventure(id);
+  const { adventure, loading, error, updateNarrative, refresh } = useAdventure(id);
+  const { config: aiConfig, isGenerating } = useAI();
   const [isEditingNarrative, setIsEditingNarrative] = useState(false);
   const [narrativeText, setNarrativeText] = useState("");
   const [activeTab, setActiveTab] = useState<"photos" | "map" | "story">("photos");
@@ -55,6 +58,10 @@ export default function AdventureDetailScreen() {
   const handleSaveNarrative = () => {
     updateNarrative(narrativeText);
     setIsEditingNarrative(false);
+  };
+
+  const handleAIGenerated = () => {
+    refresh();
   };
 
   return (
@@ -132,56 +139,143 @@ export default function AdventureDetailScreen() {
 
         {activeTab === "story" && (
           <View style={styles.storyContainer}>
-            <View style={styles.storyHeader}>
-              <Text style={styles.storyTitle}>Adventure Story</Text>
-              <Pressable
-                style={styles.editButton}
-                onPress={() => setIsEditingNarrative(!isEditingNarrative)}
-              >
-                <Text style={styles.editButtonText}>
-                  {isEditingNarrative ? "Cancel" : "✏️ Edit"}
-                </Text>
-              </Pressable>
-            </View>
-
-            {isEditingNarrative ? (
-              <View>
-                <TextInput
-                  style={styles.narrativeInput}
-                  value={narrativeText}
-                  onChangeText={setNarrativeText}
-                  multiline
-                  placeholder="Write your adventure story..."
-                  placeholderTextColor="#64748b"
-                />
-                <Pressable style={styles.saveButton} onPress={handleSaveNarrative}>
-                  <Text style={styles.saveButtonText}>Save Story</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <Text style={styles.narrativeText}>
-                {adventure.narrative || "No story written yet. Tap edit to add your adventure narrative."}
-              </Text>
-            )}
-
-            {/* AI Generated Summary */}
-            <View style={styles.aiSummaryContainer}>
-              <View style={styles.aiSummaryHeader}>
-                <Text style={styles.aiSummaryTitle}>✨ AI Summary</Text>
-              </View>
-              <Text style={styles.aiSummaryText}>{adventure.aiSummary}</Text>
-            </View>
-
-            {/* Highlights */}
-            <View style={styles.highlightsContainer}>
-              <Text style={styles.highlightsTitle}>🌟 Highlights</Text>
-              {adventure.highlights.map((highlight, index) => (
-                <View key={index} style={styles.highlightItem}>
-                  <Text style={styles.highlightBullet}>•</Text>
-                  <Text style={styles.highlightText}>{highlight}</Text>
+            {/* AI Summary Section */}
+            <View style={styles.aiSection}>
+              <View style={styles.aiSectionHeader}>
+                <View style={styles.aiSectionTitleRow}>
+                  <Text style={styles.aiSectionIcon}>✨</Text>
+                  <Text style={styles.aiSectionTitle}>AI Summary</Text>
                 </View>
-              ))}
+                <AIGenerateButton
+                  adventureId={adventure.id}
+                  type="summary"
+                  onGenerated={handleAIGenerated}
+                  compact
+                />
+              </View>
+              <View style={styles.aiSummaryContainer}>
+                {adventure.aiSummary ? (
+                  <Text style={styles.aiSummaryText}>{adventure.aiSummary}</Text>
+                ) : (
+                  <View style={styles.emptyAIState}>
+                    <Text style={styles.emptyAIText}>No AI summary yet</Text>
+                    <Text style={styles.emptyAISubtext}>
+                      Tap the ✨ button to generate one
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
+
+            {/* AI Highlights Section */}
+            <View style={styles.aiSection}>
+              <View style={styles.aiSectionHeader}>
+                <View style={styles.aiSectionTitleRow}>
+                  <Text style={styles.aiSectionIcon}>🌟</Text>
+                  <Text style={styles.aiSectionTitle}>Highlights</Text>
+                </View>
+                <AIGenerateButton
+                  adventureId={adventure.id}
+                  type="highlights"
+                  onGenerated={handleAIGenerated}
+                  compact
+                />
+              </View>
+              <View style={styles.highlightsContainer}>
+                {adventure.highlights && adventure.highlights.length > 0 ? (
+                  adventure.highlights.map((highlight, index) => (
+                    <View key={index} style={styles.highlightItem}>
+                      <Text style={styles.highlightBullet}>•</Text>
+                      <Text style={styles.highlightText}>{highlight}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyAIState}>
+                    <Text style={styles.emptyAIText}>No highlights yet</Text>
+                    <Text style={styles.emptyAISubtext}>
+                      Tap the ✨ button to generate highlights
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* User Narrative Section */}
+            <View style={styles.narrativeSection}>
+              <View style={styles.storyHeader}>
+                <View style={styles.aiSectionTitleRow}>
+                  <Text style={styles.aiSectionIcon}>📝</Text>
+                  <Text style={styles.storyTitle}>Your Story</Text>
+                </View>
+                <View style={styles.storyActions}>
+                  <AIGenerateButton
+                    adventureId={adventure.id}
+                    type="story"
+                    onGenerated={(result) => {
+                      if (result.story) {
+                        setNarrativeText(result.story);
+                        setIsEditingNarrative(true);
+                      }
+                    }}
+                    compact
+                  />
+                  <Pressable
+                    style={styles.editButton}
+                    onPress={() => setIsEditingNarrative(!isEditingNarrative)}
+                  >
+                    <Text style={styles.editButtonText}>
+                      {isEditingNarrative ? "Cancel" : "✏️"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              {isEditingNarrative ? (
+                <View>
+                  <TextInput
+                    style={styles.narrativeInput}
+                    value={narrativeText}
+                    onChangeText={setNarrativeText}
+                    multiline
+                    placeholder="Write your adventure story..."
+                    placeholderTextColor="#64748b"
+                  />
+                  <Pressable style={styles.saveButton} onPress={handleSaveNarrative}>
+                    <Text style={styles.saveButtonText}>Save Story</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Text style={styles.narrativeText}>
+                  {adventure.narrative || "No story written yet. Tap edit to add your adventure narrative, or use AI to generate one."}
+                </Text>
+              )}
+            </View>
+
+            {/* Regenerate All Button */}
+            <View style={styles.regenerateAllContainer}>
+              <AIGenerateButton
+                adventureId={adventure.id}
+                type="all"
+                onGenerated={handleAIGenerated}
+                style={styles.regenerateAllButton}
+              />
+              <Text style={styles.regenerateAllHint}>
+                Regenerate both summary and highlights at once
+              </Text>
+            </View>
+
+            {/* AI Status */}
+            {!aiConfig.isConfigured && (
+              <View style={styles.aiWarning}>
+                <Text style={styles.aiWarningIcon}>⚠️</Text>
+                <View style={styles.aiWarningContent}>
+                  <Text style={styles.aiWarningTitle}>AI Not Configured</Text>
+                  <Text style={styles.aiWarningText}>
+                    Set OPENAI_API_KEY in your server environment to enable AI features.
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -327,28 +421,108 @@ const styles = StyleSheet.create({
   storyContainer: {
     gap: 20,
   },
+  aiSection: {
+    backgroundColor: "#1e293b",
+    borderRadius: 16,
+    padding: 16,
+  },
+  aiSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  aiSectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  aiSectionIcon: {
+    fontSize: 18,
+  },
+  aiSectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  aiSummaryContainer: {
+    backgroundColor: "#0f172a",
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#8b5cf6",
+  },
+  aiSummaryText: {
+    color: "#e2e8f0",
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  emptyAIState: {
+    alignItems: "center",
+    paddingVertical: 16,
+  },
+  emptyAIText: {
+    color: "#64748b",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  emptyAISubtext: {
+    color: "#475569",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  highlightsContainer: {
+    backgroundColor: "#0f172a",
+    borderRadius: 12,
+    padding: 16,
+  },
+  highlightItem: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  highlightBullet: {
+    color: "#8b5cf6",
+    marginRight: 8,
+    fontSize: 16,
+  },
+  highlightText: {
+    color: "#e2e8f0",
+    fontSize: 14,
+    flex: 1,
+  },
+  narrativeSection: {
+    backgroundColor: "#1e293b",
+    borderRadius: 16,
+    padding: 16,
+  },
   storyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 12,
   },
   storyTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#ffffff",
   },
+  storyActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
   editButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#1e293b",
+    backgroundColor: "#334155",
     borderRadius: 8,
   },
   editButtonText: {
-    color: "#3b82f6",
+    color: "#ffffff",
     fontWeight: "600",
+    fontSize: 16,
   },
   narrativeInput: {
-    backgroundColor: "#1e293b",
+    backgroundColor: "#0f172a",
     borderRadius: 12,
     padding: 16,
     color: "#ffffff",
@@ -369,54 +543,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   narrativeText: {
-    color: "#e2e8f0",
-    fontSize: 16,
-    lineHeight: 26,
+    color: "#94a3b8",
+    fontSize: 15,
+    lineHeight: 24,
   },
-  aiSummaryContainer: {
-    backgroundColor: "#1e293b",
+  regenerateAllContainer: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  regenerateAllButton: {
+    width: "100%",
+  },
+  regenerateAllHint: {
+    color: "#64748b",
+    fontSize: 12,
+    marginTop: 8,
+  },
+  aiWarning: {
+    flexDirection: "row",
+    backgroundColor: "#422006",
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#8b5cf6",
+    borderLeftColor: "#f59e0b",
   },
-  aiSummaryHeader: {
-    marginBottom: 8,
+  aiWarningIcon: {
+    fontSize: 20,
+    marginRight: 12,
   },
-  aiSummaryTitle: {
-    color: "#8b5cf6",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  aiSummaryText: {
-    color: "#e2e8f0",
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  highlightsContainer: {
-    backgroundColor: "#1e293b",
-    borderRadius: 12,
-    padding: 16,
-  },
-  highlightsTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  highlightItem: {
-    flexDirection: "row",
-    marginBottom: 8,
-  },
-  highlightBullet: {
-    color: "#3b82f6",
-    marginRight: 8,
-    fontSize: 16,
-  },
-  highlightText: {
-    color: "#e2e8f0",
-    fontSize: 14,
+  aiWarningContent: {
     flex: 1,
+  },
+  aiWarningTitle: {
+    color: "#fbbf24",
+    fontWeight: "bold",
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  aiWarningText: {
+    color: "#fcd34d",
+    fontSize: 13,
+    lineHeight: 18,
   },
   exportContainer: {
     position: "absolute",
