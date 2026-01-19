@@ -1,390 +1,185 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import { Adventure, MediaItem, AppSettings } from "../types";
 
-const STORAGE_KEYS = {
-  // Connection
-  IMMICH_SERVER_URL: "immich_server_url",
-  IMMICH_API_KEY: "immich_api_key",
-  IMMICH_IS_CONNECTED: "immich_is_connected",
-  
-  // Adventures
-  ADVENTURES: "adventures",
-  ADVENTURE_NARRATIVES: "adventure_narratives",
-  ADVENTURE_CUSTOM_DATA: "adventure_custom_data",
-  
-  // Media cache
-  MEDIA_CACHE: "media_cache",
-  LAST_SYNC_TIME: "last_sync_time",
-  
-  // Settings
-  APP_SETTINGS: "app_settings",
-  
-  // User preferences
-  FAVORITE_ADVENTURES: "favorite_adventures",
-  HIDDEN_ADVENTURES: "hidden_adventures",
+// Determine if we should use API storage (Docker/web) or AsyncStorage (native app)
+const useApiStorage = (): boolean => {
+  // Use API storage for web platform or when API_URL is set
+  if (Platform.OS === "web") {
+    return true;
+  }
+  // For native apps, check if we have an API URL configured
+  return !!process.env.EXPO_PUBLIC_API_URL;
 };
 
+// Lazy load the appropriate storage service
+let storageImplementation: any = null;
+
+async function getStorage() {
+  if (storageImplementation) {
+    return storageImplementation;
+  }
+
+  if (useApiStorage()) {
+    const { apiStorageService } = await import("./apiStorageService");
+    storageImplementation = apiStorageService;
+  } else {
+    const { localStorageService } = await import("./localStorageService");
+    storageImplementation = localStorageService;
+  }
+
+  return storageImplementation;
+}
+
+// Proxy class that delegates to the appropriate implementation
 class StorageService {
-  // ============ Adventures ============
-  
   async saveAdventures(adventures: Adventure[]): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.ADVENTURES, JSON.stringify(adventures));
-      await this.setLastSyncTime(new Date());
-    } catch (error) {
-      console.error("Failed to save adventures:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.saveAdventures(adventures);
   }
 
   async getAdventures(): Promise<Adventure[]> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.ADVENTURES);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error("Failed to get adventures:", error);
-      return [];
-    }
+    const storage = await getStorage();
+    return storage.getAdventures();
   }
 
   async saveAdventure(adventure: Adventure): Promise<void> {
-    try {
-      const adventures = await this.getAdventures();
-      const index = adventures.findIndex((a) => a.id === adventure.id);
-      
-      if (index >= 0) {
-        adventures[index] = adventure;
-      } else {
-        adventures.push(adventure);
-      }
-      
-      await this.saveAdventures(adventures);
-    } catch (error) {
-      console.error("Failed to save adventure:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.saveAdventure(adventure);
   }
 
   async deleteAdventure(adventureId: string): Promise<void> {
-    try {
-      const adventures = await this.getAdventures();
-      const filtered = adventures.filter((a) => a.id !== adventureId);
-      await this.saveAdventures(filtered);
-    } catch (error) {
-      console.error("Failed to delete adventure:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.deleteAdventure(adventureId);
   }
 
-  // ============ Narratives ============
-  
   async saveNarrative(adventureId: string, narrative: string): Promise<void> {
-    try {
-      const narratives = await this.getAllNarratives();
-      narratives[adventureId] = narrative;
-      await AsyncStorage.setItem(STORAGE_KEYS.ADVENTURE_NARRATIVES, JSON.stringify(narratives));
-    } catch (error) {
-      console.error("Failed to save narrative:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.saveNarrative(adventureId, narrative);
   }
 
   async getNarrative(adventureId: string): Promise<string | null> {
-    try {
-      const narratives = await this.getAllNarratives();
-      return narratives[adventureId] || null;
-    } catch (error) {
-      console.error("Failed to get narrative:", error);
-      return null;
-    }
+    const storage = await getStorage();
+    return storage.getNarrative(adventureId);
   }
 
   async getAllNarratives(): Promise<Record<string, string>> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.ADVENTURE_NARRATIVES);
-      return data ? JSON.parse(data) : {};
-    } catch (error) {
-      console.error("Failed to get narratives:", error);
-      return {};
-    }
+    const storage = await getStorage();
+    return storage.getAllNarratives();
   }
 
-  // ============ Custom Adventure Data ============
-  
   async saveCustomData(adventureId: string, data: Partial<Adventure>): Promise<void> {
-    try {
-      const allCustomData = await this.getAllCustomData();
-      allCustomData[adventureId] = { ...allCustomData[adventureId], ...data };
-      await AsyncStorage.setItem(STORAGE_KEYS.ADVENTURE_CUSTOM_DATA, JSON.stringify(allCustomData));
-    } catch (error) {
-      console.error("Failed to save custom data:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.saveCustomData(adventureId, data);
   }
 
   async getCustomData(adventureId: string): Promise<Partial<Adventure> | null> {
-    try {
-      const allCustomData = await this.getAllCustomData();
-      return allCustomData[adventureId] || null;
-    } catch (error) {
-      console.error("Failed to get custom data:", error);
-      return null;
-    }
+    const storage = await getStorage();
+    return storage.getCustomData(adventureId);
   }
 
   async getAllCustomData(): Promise<Record<string, Partial<Adventure>>> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.ADVENTURE_CUSTOM_DATA);
-      return data ? JSON.parse(data) : {};
-    } catch (error) {
-      console.error("Failed to get custom data:", error);
-      return {};
-    }
+    const storage = await getStorage();
+    return storage.getAllCustomData();
   }
 
-  // ============ Media Cache ============
-  
   async cacheMedia(media: MediaItem[]): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.MEDIA_CACHE, JSON.stringify(media));
-    } catch (error) {
-      console.error("Failed to cache media:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.cacheMedia(media);
   }
 
   async getCachedMedia(): Promise<MediaItem[]> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.MEDIA_CACHE);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error("Failed to get cached media:", error);
-      return [];
-    }
+    const storage = await getStorage();
+    return storage.getCachedMedia();
   }
 
   async clearMediaCache(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEYS.MEDIA_CACHE);
-    } catch (error) {
-      console.error("Failed to clear media cache:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.clearMediaCache();
   }
 
-  // ============ Sync Time ============
-  
   async setLastSyncTime(date: Date): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC_TIME, date.toISOString());
-    } catch (error) {
-      console.error("Failed to set last sync time:", error);
-    }
+    const storage = await getStorage();
+    return storage.setLastSyncTime(date);
   }
 
   async getLastSyncTime(): Promise<Date | null> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.LAST_SYNC_TIME);
-      return data ? new Date(data) : null;
-    } catch (error) {
-      console.error("Failed to get last sync time:", error);
-      return null;
-    }
+    const storage = await getStorage();
+    return storage.getLastSyncTime();
   }
 
-  // ============ Settings ============
-  
   async saveSettings(settings: AppSettings): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.APP_SETTINGS, JSON.stringify(settings));
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.saveSettings(settings);
   }
 
   async getSettings(): Promise<AppSettings | null> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.APP_SETTINGS);
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      console.error("Failed to get settings:", error);
-      return null;
-    }
+    const storage = await getStorage();
+    return storage.getSettings();
   }
 
-  // ============ Favorites ============
-  
   async addFavorite(adventureId: string): Promise<void> {
-    try {
-      const favorites = await this.getFavorites();
-      if (!favorites.includes(adventureId)) {
-        favorites.push(adventureId);
-        await AsyncStorage.setItem(STORAGE_KEYS.FAVORITE_ADVENTURES, JSON.stringify(favorites));
-      }
-    } catch (error) {
-      console.error("Failed to add favorite:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.addFavorite(adventureId);
   }
 
   async removeFavorite(adventureId: string): Promise<void> {
-    try {
-      const favorites = await this.getFavorites();
-      const filtered = favorites.filter((id) => id !== adventureId);
-      await AsyncStorage.setItem(STORAGE_KEYS.FAVORITE_ADVENTURES, JSON.stringify(filtered));
-    } catch (error) {
-      console.error("Failed to remove favorite:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.removeFavorite(adventureId);
   }
 
   async getFavorites(): Promise<string[]> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.FAVORITE_ADVENTURES);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error("Failed to get favorites:", error);
-      return [];
-    }
+    const storage = await getStorage();
+    return storage.getFavorites();
   }
 
   async isFavorite(adventureId: string): Promise<boolean> {
-    const favorites = await this.getFavorites();
-    return favorites.includes(adventureId);
+    const storage = await getStorage();
+    return storage.isFavorite(adventureId);
   }
 
-  // ============ Hidden Adventures ============
-  
   async hideAdventure(adventureId: string): Promise<void> {
-    try {
-      const hidden = await this.getHiddenAdventures();
-      if (!hidden.includes(adventureId)) {
-        hidden.push(adventureId);
-        await AsyncStorage.setItem(STORAGE_KEYS.HIDDEN_ADVENTURES, JSON.stringify(hidden));
-      }
-    } catch (error) {
-      console.error("Failed to hide adventure:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.hideAdventure(adventureId);
   }
 
   async unhideAdventure(adventureId: string): Promise<void> {
-    try {
-      const hidden = await this.getHiddenAdventures();
-      const filtered = hidden.filter((id) => id !== adventureId);
-      await AsyncStorage.setItem(STORAGE_KEYS.HIDDEN_ADVENTURES, JSON.stringify(filtered));
-    } catch (error) {
-      console.error("Failed to unhide adventure:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.unhideAdventure(adventureId);
   }
 
   async getHiddenAdventures(): Promise<string[]> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.HIDDEN_ADVENTURES);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error("Failed to get hidden adventures:", error);
-      return [];
-    }
+    const storage = await getStorage();
+    return storage.getHiddenAdventures();
   }
 
-  // ============ Connection ============
-  
   async saveConnection(serverUrl: string, apiKey: string): Promise<void> {
-    try {
-      await Promise.all([
-        AsyncStorage.setItem(STORAGE_KEYS.IMMICH_SERVER_URL, serverUrl),
-        AsyncStorage.setItem(STORAGE_KEYS.IMMICH_API_KEY, apiKey),
-        AsyncStorage.setItem(STORAGE_KEYS.IMMICH_IS_CONNECTED, "true"),
-      ]);
-    } catch (error) {
-      console.error("Failed to save connection:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.saveConnection(serverUrl, apiKey);
   }
 
   async getConnection(): Promise<{ serverUrl: string | null; apiKey: string | null; isConnected: boolean }> {
-    try {
-      const [serverUrl, apiKey, isConnected] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.IMMICH_SERVER_URL),
-        AsyncStorage.getItem(STORAGE_KEYS.IMMICH_API_KEY),
-        AsyncStorage.getItem(STORAGE_KEYS.IMMICH_IS_CONNECTED),
-      ]);
-      return {
-        serverUrl,
-        apiKey,
-        isConnected: isConnected === "true",
-      };
-    } catch (error) {
-      console.error("Failed to get connection:", error);
-      return { serverUrl: null, apiKey: null, isConnected: false };
-    }
+    const storage = await getStorage();
+    return storage.getConnection();
   }
 
   async clearConnection(): Promise<void> {
-    try {
-      await Promise.all([
-        AsyncStorage.removeItem(STORAGE_KEYS.IMMICH_SERVER_URL),
-        AsyncStorage.removeItem(STORAGE_KEYS.IMMICH_API_KEY),
-        AsyncStorage.setItem(STORAGE_KEYS.IMMICH_IS_CONNECTED, "false"),
-      ]);
-    } catch (error) {
-      console.error("Failed to clear connection:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.clearConnection();
   }
 
-  // ============ Clear All Data ============
-  
   async clearAllData(): Promise<void> {
-    try {
-      const keys = Object.values(STORAGE_KEYS);
-      await AsyncStorage.multiRemove(keys);
-    } catch (error) {
-      console.error("Failed to clear all data:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.clearAllData();
   }
 
-  // ============ Export/Import ============
-  
   async exportAllData(): Promise<string> {
-    try {
-      const keys = Object.values(STORAGE_KEYS);
-      const pairs = await AsyncStorage.multiGet(keys);
-      const data: Record<string, any> = {};
-      
-      pairs.forEach(([key, value]) => {
-        if (value) {
-          try {
-            data[key] = JSON.parse(value);
-          } catch {
-            data[key] = value;
-          }
-        }
-      });
-      
-      return JSON.stringify(data, null, 2);
-    } catch (error) {
-      console.error("Failed to export data:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.exportAllData();
   }
 
   async importData(jsonString: string): Promise<void> {
-    try {
-      const data = JSON.parse(jsonString);
-      const pairs: [string, string][] = Object.entries(data).map(([key, value]) => [
-        key,
-        typeof value === "string" ? value : JSON.stringify(value),
-      ]);
-      await AsyncStorage.multiSet(pairs);
-    } catch (error) {
-      console.error("Failed to import data:", error);
-      throw error;
-    }
+    const storage = await getStorage();
+    return storage.importData(jsonString);
   }
 }
 

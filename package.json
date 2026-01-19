@@ -10,6 +10,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build:web": "expo export -p web",
+    "server": "node server/index.js",
+    "docker:build": "docker build -t travel-log .",
+    "docker:run": "docker run -p 3000:3000 -v $(pwd)/data:/app/data travel-log",
+    "docker:compose": "docker-compose up -d",
     "lint": "eslint ."
   },
   "dependencies": {
