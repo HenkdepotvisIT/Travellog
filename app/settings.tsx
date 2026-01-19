@@ -8,16 +8,34 @@ import {
   Switch,
   StyleSheet,
   Alert,
-  Modal,
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useImmichConnection } from "../hooks/useImmichConnection";
 import { useSettings } from "../hooks/useSettings";
 import { useDataExport } from "../hooks/useDataExport";
 import { useAdventures } from "../hooks/useAdventures";
+import { useAI } from "../hooks/useAI";
 import { storageService } from "../services/storageService";
+import GradientBackground from "../components/ui/GradientBackground";
+import GlassCard from "../components/ui/GlassCard";
+import AnimatedButton from "../components/ui/AnimatedButton";
 import ProxyHeaderEditor from "../components/ProxyHeaderEditor";
+
+const OPENAI_MODELS = [
+  { id: "gpt-4o-mini", name: "GPT-4o Mini", description: "Fast & affordable" },
+  { id: "gpt-4o", name: "GPT-4o", description: "Most capable" },
+  { id: "gpt-4-turbo", name: "GPT-4 Turbo", description: "High performance" },
+];
+
+const VERTEX_MODELS = [
+  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", description: "Fast & efficient" },
+  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Most capable" },
+  { id: "gemini-1.0-pro", name: "Gemini 1.0 Pro", description: "Balanced" },
+];
 
 export default function SettingsScreen() {
   const { isConnected, serverUrl, apiKey, connect, disconnect, testConnection, reconnectWithHeaders } =
@@ -33,6 +51,7 @@ export default function SettingsScreen() {
   } = useSettings();
   const { exportData, importData, clearAllData, isExporting, isImporting } = useDataExport();
   const { syncStatus, syncWithImmich } = useAdventures({ dateRange: null, country: null, minDistance: 0 });
+  const { config: aiConfig, updateConfig: updateAIConfig, isLoading: aiLoading } = useAI();
 
   const [newServerUrl, setNewServerUrl] = useState(serverUrl || "");
   const [newApiKey, setNewApiKey] = useState("");
@@ -40,12 +59,26 @@ export default function SettingsScreen() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  
+  // AI Settings state
+  const [vertexProject, setVertexProject] = useState(aiConfig.vertexProject || "");
+  const [vertexLocation, setVertexLocation] = useState(aiConfig.vertexLocation || "us-central1");
+  const [isSavingAI, setIsSavingAI] = useState(false);
 
   useEffect(() => {
     if (serverUrl) {
       setNewServerUrl(serverUrl);
     }
   }, [serverUrl]);
+
+  useEffect(() => {
+    if (aiConfig.vertexProject) {
+      setVertexProject(aiConfig.vertexProject);
+    }
+    if (aiConfig.vertexLocation) {
+      setVertexLocation(aiConfig.vertexLocation);
+    }
+  }, [aiConfig]);
 
   const handleTestConnection = async () => {
     if (!newServerUrl) {
@@ -167,9 +200,38 @@ export default function SettingsScreen() {
   };
 
   const handleProxyHeadersChanged = async () => {
-    // Reconnect with updated headers if already connected
     if (isConnected) {
       await reconnectWithHeaders();
+    }
+  };
+
+  // AI Settings handlers
+  const handleAIProviderChange = async (provider: string) => {
+    setIsSavingAI(true);
+    try {
+      const defaultModel = provider === "vertex" ? "gemini-1.5-flash" : "gpt-4o-mini";
+      await updateAIConfig({ provider, model: defaultModel });
+    } finally {
+      setIsSavingAI(false);
+    }
+  };
+
+  const handleAIModelChange = async (model: string) => {
+    setIsSavingAI(true);
+    try {
+      await updateAIConfig({ model });
+    } finally {
+      setIsSavingAI(false);
+    }
+  };
+
+  const handleVertexConfigSave = async () => {
+    setIsSavingAI(true);
+    try {
+      await updateAIConfig({ vertexProject, vertexLocation });
+      Alert.alert("✅ Saved", "Vertex AI configuration saved successfully");
+    } finally {
+      setIsSavingAI(false);
     }
   };
 
@@ -186,30 +248,39 @@ export default function SettingsScreen() {
     id: string;
     badge?: string | number;
   }) => (
-    <View style={styles.section}>
+    <Animated.View entering={FadeInDown.delay(100)} style={styles.section}>
       <Pressable 
         style={styles.sectionHeader}
         onPress={() => setActiveSection(activeSection === id ? null : id)}
       >
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionIcon}>{icon}</Text>
-          <Text style={styles.sectionTitle}>{title}</Text>
-          {badge !== undefined && badge !== 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{badge}</Text>
+        <BlurView intensity={60} tint="dark" style={styles.sectionHeaderBlur}>
+          <LinearGradient
+            colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]}
+            style={styles.sectionHeaderGradient}
+          >
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionIcon}>{icon}</Text>
+              <Text style={styles.sectionTitle}>{title}</Text>
+              {badge !== undefined && badge !== 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{badge}</Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
-        <Text style={styles.sectionChevron}>
-          {activeSection === id ? "▼" : "▶"}
-        </Text>
+            <Text style={styles.sectionChevron}>
+              {activeSection === id ? "▼" : "▶"}
+            </Text>
+          </LinearGradient>
+        </BlurView>
       </Pressable>
       {activeSection === id && (
-        <View style={styles.sectionContent}>
-          {children}
-        </View>
+        <Animated.View entering={FadeIn} style={styles.sectionContent}>
+          <GlassCard>
+            {children}
+          </GlassCard>
+        </Animated.View>
       )}
-    </View>
+    </Animated.View>
   );
 
   const SettingRow = ({
@@ -231,392 +302,573 @@ export default function SettingsScreen() {
   );
 
   const enabledHeadersCount = (settings.proxyHeaders || []).filter(h => h.enabled && h.key && h.value).length;
+  const aiModels = aiConfig.provider === "vertex" ? VERTEX_MODELS : OPENAI_MODELS;
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>←</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <GradientBackground>
+      <View style={styles.container}>
+        {/* Header */}
+        <Animated.View entering={FadeInDown} style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <BlurView intensity={60} tint="dark" style={styles.backButtonBlur}>
+              <Text style={styles.backButtonText}>←</Text>
+            </BlurView>
+          </Pressable>
+          <Text style={styles.headerTitle}>Settings</Text>
+          <View style={{ width: 44 }} />
+        </Animated.View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Connection Status Card */}
-        <View style={styles.statusCard}>
-          <View style={styles.statusHeader}>
-            <View style={styles.statusIndicator}>
-              <View style={[styles.statusDot, isConnected ? styles.statusConnected : styles.statusDisconnected]} />
-              <Text style={styles.statusText}>
-                {isConnected ? "Connected to Immich" : "Not Connected"}
-              </Text>
-            </View>
-            {isConnected && (
-              <Pressable style={styles.syncButton} onPress={handleSync} disabled={syncStatus.isSyncing}>
-                {syncStatus.isSyncing ? (
-                  <ActivityIndicator size="small" color="#3b82f6" />
-                ) : (
-                  <Text style={styles.syncButtonText}>🔄 Sync</Text>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Connection Status Card */}
+          <Animated.View entering={FadeInDown.delay(50)}>
+            <GlassCard style={styles.statusCard}>
+              <View style={styles.statusHeader}>
+                <View style={styles.statusIndicator}>
+                  <View style={[styles.statusDot, isConnected ? styles.statusConnected : styles.statusDisconnected]} />
+                  <Text style={styles.statusText}>
+                    {isConnected ? "Connected to Immich" : "Not Connected"}
+                  </Text>
+                </View>
+                {isConnected && (
+                  <Pressable style={styles.syncButton} onPress={handleSync} disabled={syncStatus.isSyncing}>
+                    <LinearGradient
+                      colors={["rgba(59, 130, 246, 0.3)", "rgba(59, 130, 246, 0.1)"]}
+                      style={styles.syncButtonGradient}
+                    >
+                      {syncStatus.isSyncing ? (
+                        <ActivityIndicator size="small" color="#3b82f6" />
+                      ) : (
+                        <Text style={styles.syncButtonText}>🔄 Sync</Text>
+                      )}
+                    </LinearGradient>
+                  </Pressable>
                 )}
-              </Pressable>
-            )}
-          </View>
-          {isConnected && serverUrl && (
-            <Text style={styles.serverUrlText}>{serverUrl}</Text>
-          )}
-          {syncStatus.lastSyncTime && (
-            <Text style={styles.lastSyncText}>
-              Last synced: {new Date(syncStatus.lastSyncTime).toLocaleString()}
-            </Text>
-          )}
-          {enabledHeadersCount > 0 && (
-            <View style={styles.proxyBadge}>
-              <Text style={styles.proxyBadgeText}>
-                🔒 {enabledHeadersCount} proxy header{enabledHeadersCount > 1 ? "s" : ""} active
+              </View>
+              {isConnected && serverUrl && (
+                <Text style={styles.serverUrlText}>{serverUrl}</Text>
+              )}
+              {syncStatus.lastSyncTime && (
+                <Text style={styles.lastSyncText}>
+                  Last synced: {new Date(syncStatus.lastSyncTime).toLocaleString()}
+                </Text>
+              )}
+              {enabledHeadersCount > 0 && (
+                <View style={styles.proxyBadge}>
+                  <Text style={styles.proxyBadgeText}>
+                    🔒 {enabledHeadersCount} proxy header{enabledHeadersCount > 1 ? "s" : ""} active
+                  </Text>
+                </View>
+              )}
+            </GlassCard>
+          </Animated.View>
+
+          {/* Immich Connection */}
+          <SettingsSection title="Immich Connection" icon="🔗" id="connection">
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Server URL</Text>
+              <View style={styles.inputContainer}>
+                <BlurView intensity={40} tint="dark" style={styles.inputBlur}>
+                  <TextInput
+                    style={styles.input}
+                    value={newServerUrl}
+                    onChangeText={setNewServerUrl}
+                    placeholder="https://your-immich-server.com"
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                  />
+                </BlurView>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>API Key</Text>
+              <View style={styles.inputContainer}>
+                <BlurView intensity={40} tint="dark" style={styles.inputBlur}>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      value={newApiKey}
+                      onChangeText={setNewApiKey}
+                      placeholder={isConnected ? "••••••••••••" : "Enter your API key"}
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      secureTextEntry={!showApiKey}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    <Pressable 
+                      style={styles.showPasswordButton}
+                      onPress={() => setShowApiKey(!showApiKey)}
+                    >
+                      <Text style={styles.showPasswordText}>{showApiKey ? "🙈" : "👁️"}</Text>
+                    </Pressable>
+                  </View>
+                </BlurView>
+              </View>
+              <Text style={styles.inputHint}>
+                Find your API key in Immich → Account Settings → API Keys
               </Text>
             </View>
-          )}
-        </View>
 
-        {/* Immich Connection */}
-        <SettingsSection title="Immich Connection" icon="🔗" id="connection">
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Server URL</Text>
-            <TextInput
-              style={styles.input}
-              value={newServerUrl}
-              onChangeText={setNewServerUrl}
-              placeholder="https://your-immich-server.com"
-              placeholderTextColor="#64748b"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>API Key</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                value={newApiKey}
-                onChangeText={setNewApiKey}
-                placeholder={isConnected ? "••••••••••••" : "Enter your API key"}
-                placeholderTextColor="#64748b"
-                secureTextEntry={!showApiKey}
-                autoCapitalize="none"
-                autoCorrect={false}
+            <View style={styles.buttonRow}>
+              <AnimatedButton
+                title={isTesting ? "Testing..." : "Test"}
+                variant="secondary"
+                onPress={handleTestConnection}
+                disabled={isTesting}
+                style={{ flex: 1 }}
               />
-              <Pressable 
-                style={styles.showPasswordButton}
-                onPress={() => setShowApiKey(!showApiKey)}
-              >
-                <Text style={styles.showPasswordText}>{showApiKey ? "🙈" : "👁️"}</Text>
-              </Pressable>
-            </View>
-            <Text style={styles.inputHint}>
-              Find your API key in Immich → Account Settings → API Keys
-            </Text>
-          </View>
 
-          <View style={styles.buttonRow}>
-            <Pressable
-              style={[styles.button, styles.secondaryButton]}
-              onPress={handleTestConnection}
-              disabled={isTesting}
-            >
-              {isTesting ? (
-                <ActivityIndicator size="small" color="#ffffff" />
+              {isConnected ? (
+                <AnimatedButton
+                  title="Disconnect"
+                  variant="danger"
+                  onPress={handleDisconnect}
+                  style={{ flex: 1 }}
+                />
               ) : (
-                <Text style={styles.secondaryButtonText}>Test</Text>
+                <AnimatedButton
+                  title={isConnecting ? "Connecting..." : "Connect"}
+                  variant="primary"
+                  onPress={handleConnect}
+                  disabled={isConnecting}
+                  style={{ flex: 1 }}
+                />
               )}
+            </View>
+          </SettingsSection>
+
+          {/* AI Configuration */}
+          <SettingsSection 
+            title="AI Configuration" 
+            icon="🤖" 
+            id="ai"
+            badge={aiConfig.isConfigured ? "✓" : undefined}
+          >
+            {aiLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#3b82f6" />
+              </View>
+            ) : (
+              <>
+                {/* Provider Selection */}
+                <Text style={styles.subsectionTitle}>Provider</Text>
+                <View style={styles.providerGrid}>
+                  <Pressable
+                    style={[
+                      styles.providerCard,
+                      aiConfig.provider === "openai" && styles.providerCardActive,
+                    ]}
+                    onPress={() => handleAIProviderChange("openai")}
+                  >
+                    <View style={styles.providerHeader}>
+                      <Text style={styles.providerIcon}>🤖</Text>
+                      <View
+                        style={[
+                          styles.providerStatusBadge,
+                          aiConfig.availableProviders?.openai
+                            ? styles.providerStatusConfigured
+                            : styles.providerStatusNotConfigured,
+                        ]}
+                      >
+                        <Text style={styles.providerStatusText}>
+                          {aiConfig.availableProviders?.openai ? "Ready" : "Not Set"}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.providerName}>OpenAI</Text>
+                    <Text style={styles.providerDescription}>GPT-4o models</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.providerCard,
+                      aiConfig.provider === "vertex" && styles.providerCardActive,
+                    ]}
+                    onPress={() => handleAIProviderChange("vertex")}
+                  >
+                    <View style={styles.providerHeader}>
+                      <Text style={styles.providerIcon}>🔷</Text>
+                      <View
+                        style={[
+                          styles.providerStatusBadge,
+                          aiConfig.availableProviders?.vertex
+                            ? styles.providerStatusConfigured
+                            : styles.providerStatusNotConfigured,
+                        ]}
+                      >
+                        <Text style={styles.providerStatusText}>
+                          {aiConfig.availableProviders?.vertex ? "Ready" : "Not Set"}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.providerName}>Vertex AI</Text>
+                    <Text style={styles.providerDescription}>Gemini models</Text>
+                  </Pressable>
+                </View>
+
+                {/* Vertex AI Configuration */}
+                {aiConfig.provider === "vertex" && (
+                  <View style={styles.vertexConfig}>
+                    <Text style={styles.subsectionTitle}>Vertex AI Settings</Text>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Project ID</Text>
+                      <View style={styles.inputContainer}>
+                        <BlurView intensity={40} tint="dark" style={styles.inputBlur}>
+                          <TextInput
+                            style={styles.input}
+                            value={vertexProject}
+                            onChangeText={setVertexProject}
+                            placeholder="your-gcp-project-id"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                          />
+                        </BlurView>
+                      </View>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Location</Text>
+                      <View style={styles.inputContainer}>
+                        <BlurView intensity={40} tint="dark" style={styles.inputBlur}>
+                          <TextInput
+                            style={styles.input}
+                            value={vertexLocation}
+                            onChangeText={setVertexLocation}
+                            placeholder="us-central1"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                          />
+                        </BlurView>
+                      </View>
+                    </View>
+
+                    <AnimatedButton
+                      title={isSavingAI ? "Saving..." : "Save Vertex Config"}
+                      variant="primary"
+                      onPress={handleVertexConfigSave}
+                      disabled={isSavingAI}
+                    />
+
+                    <View style={styles.infoBox}>
+                      <Text style={styles.infoTitle}>📋 Setup Instructions</Text>
+                      <Text style={styles.infoText}>
+                        1. Set GOOGLE_CLOUD_PROJECT env variable{"\n"}
+                        2. Set GOOGLE_APPLICATION_CREDENTIALS to your service account key{"\n"}
+                        3. Ensure the service account has Vertex AI User role
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Model Selection */}
+                <Text style={styles.subsectionTitle}>Model</Text>
+                <View style={styles.modelList}>
+                  {aiModels.map((model) => (
+                    <Pressable
+                      key={model.id}
+                      style={[
+                        styles.modelCard,
+                        aiConfig.model === model.id && styles.modelCardActive,
+                      ]}
+                      onPress={() => handleAIModelChange(model.id)}
+                    >
+                      <View style={styles.modelInfo}>
+                        <Text style={styles.modelName}>{model.name}</Text>
+                        <Text style={styles.modelDescription}>{model.description}</Text>
+                      </View>
+                      {aiConfig.model === model.id && (
+                        <View style={styles.checkmark}>
+                          <Text style={styles.checkmarkText}>✓</Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+
+                {/* Status */}
+                <View style={styles.aiStatusCard}>
+                  <View style={styles.aiStatusRow}>
+                    <Text style={styles.aiStatusLabel}>Status:</Text>
+                    <Text
+                      style={[
+                        styles.aiStatusValue,
+                        aiConfig.isConfigured ? styles.statusGreen : styles.statusRed,
+                      ]}
+                    >
+                      {aiConfig.isConfigured ? "✅ Ready to use" : "❌ Not configured"}
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </SettingsSection>
+
+          {/* Proxy Headers */}
+          <SettingsSection 
+            title="Proxy Headers" 
+            icon="🔐" 
+            id="proxy"
+            badge={enabledHeadersCount}
+          >
+            <ProxyHeaderEditor
+              headers={settings.proxyHeaders || []}
+              onAdd={async () => {
+                await addProxyHeader();
+                handleProxyHeadersChanged();
+              }}
+              onUpdate={async (id, updates) => {
+                await updateProxyHeader(id, updates);
+                handleProxyHeadersChanged();
+              }}
+              onDelete={async (id) => {
+                await deleteProxyHeader(id);
+                handleProxyHeadersChanged();
+              }}
+              onToggle={async (id) => {
+                await toggleProxyHeader(id);
+                handleProxyHeadersChanged();
+              }}
+            />
+          </SettingsSection>
+
+          {/* Adventure Clustering */}
+          <SettingsSection title="Adventure Detection" icon="🗺️" id="clustering">
+            <SettingRow
+              label="Time Window"
+              description="Hours between photos to group as same adventure"
+            >
+              <View style={styles.numberInputContainer}>
+                <Pressable
+                  style={styles.numberButton}
+                  onPress={() => updateSettings({ clusterTimeWindow: Math.max(1, settings.clusterTimeWindow - 6) })}
+                >
+                  <Text style={styles.numberButtonText}>−</Text>
+                </Pressable>
+                <Text style={styles.numberValue}>{settings.clusterTimeWindow}h</Text>
+                <Pressable
+                  style={styles.numberButton}
+                  onPress={() => updateSettings({ clusterTimeWindow: settings.clusterTimeWindow + 6 })}
+                >
+                  <Text style={styles.numberButtonText}>+</Text>
+                </Pressable>
+              </View>
+            </SettingRow>
+
+            <SettingRow
+              label="Distance Threshold"
+              description="Max km between photos in same adventure"
+            >
+              <View style={styles.numberInputContainer}>
+                <Pressable
+                  style={styles.numberButton}
+                  onPress={() => updateSettings({ clusterDistanceKm: Math.max(10, settings.clusterDistanceKm - 10) })}
+                >
+                  <Text style={styles.numberButtonText}>−</Text>
+                </Pressable>
+                <Text style={styles.numberValue}>{settings.clusterDistanceKm}km</Text>
+                <Pressable
+                  style={styles.numberButton}
+                  onPress={() => updateSettings({ clusterDistanceKm: settings.clusterDistanceKm + 10 })}
+                >
+                  <Text style={styles.numberButtonText}>+</Text>
+                </Pressable>
+              </View>
+            </SettingRow>
+
+            <SettingRow
+              label="Minimum Photos"
+              description="Min photos required to create an adventure"
+            >
+              <View style={styles.numberInputContainer}>
+                <Pressable
+                  style={styles.numberButton}
+                  onPress={() => updateSettings({ minPhotosPerAdventure: Math.max(2, settings.minPhotosPerAdventure - 1) })}
+                >
+                  <Text style={styles.numberButtonText}>−</Text>
+                </Pressable>
+                <Text style={styles.numberValue}>{settings.minPhotosPerAdventure}</Text>
+                <Pressable
+                  style={styles.numberButton}
+                  onPress={() => updateSettings({ minPhotosPerAdventure: settings.minPhotosPerAdventure + 1 })}
+                >
+                  <Text style={styles.numberButtonText}>+</Text>
+                </Pressable>
+              </View>
+            </SettingRow>
+          </SettingsSection>
+
+          {/* Display Settings */}
+          <SettingsSection title="Display" icon="🎨" id="display">
+            <SettingRow
+              label="Show Route Lines"
+              description="Display travel routes on the map"
+            >
+              <Switch
+                value={settings.showRouteLines}
+                onValueChange={(v) => updateSettings({ showRouteLines: v })}
+                trackColor={{ false: "rgba(255,255,255,0.1)", true: "#3b82f6" }}
+                thumbColor="#ffffff"
+              />
+            </SettingRow>
+
+            <SettingRow
+              label="Auto-generate Summaries"
+              description="Create AI summaries for adventures"
+            >
+              <Switch
+                value={settings.autoGenerateSummaries}
+                onValueChange={(v) => updateSettings({ autoGenerateSummaries: v })}
+                trackColor={{ false: "rgba(255,255,255,0.1)", true: "#3b82f6" }}
+                thumbColor="#ffffff"
+              />
+            </SettingRow>
+
+            <SettingRow
+              label="Default View"
+              description="Starting view when opening the app"
+            >
+              <View style={styles.segmentedControl}>
+                <Pressable
+                  style={[
+                    styles.segmentButton,
+                    settings.defaultView === "map" && styles.segmentButtonActive,
+                  ]}
+                  onPress={() => updateSettings({ defaultView: "map" })}
+                >
+                  <Text style={[
+                    styles.segmentButtonText,
+                    settings.defaultView === "map" && styles.segmentButtonTextActive,
+                  ]}>
+                    Map
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.segmentButton,
+                    settings.defaultView === "timeline" && styles.segmentButtonActive,
+                  ]}
+                  onPress={() => updateSettings({ defaultView: "timeline" })}
+                >
+                  <Text style={[
+                    styles.segmentButtonText,
+                    settings.defaultView === "timeline" && styles.segmentButtonTextActive,
+                  ]}>
+                    Timeline
+                  </Text>
+                </Pressable>
+              </View>
+            </SettingRow>
+          </SettingsSection>
+
+          {/* Data Management */}
+          <SettingsSection title="Data Management" icon="💾" id="data">
+            <Pressable
+              style={styles.actionButton}
+              onPress={handleExportData}
+              disabled={isExporting}
+            >
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionIconText}>📤</Text>
+              </View>
+              <View style={styles.actionButtonContent}>
+                <Text style={styles.actionButtonTitle}>
+                  {isExporting ? "Exporting..." : "Export All Data"}
+                </Text>
+                <Text style={styles.actionButtonDescription}>
+                  Download a backup of all your adventures and settings
+                </Text>
+              </View>
+              {isExporting && <ActivityIndicator size="small" color="#3b82f6" />}
             </Pressable>
 
-            {isConnected ? (
-              <Pressable
-                style={[styles.button, styles.dangerButton]}
-                onPress={handleDisconnect}
-              >
-                <Text style={styles.dangerButtonText}>Disconnect</Text>
-              </Pressable>
-            ) : (
-              <Pressable
-                style={[styles.button, styles.primaryButton]}
-                onPress={handleConnect}
-                disabled={isConnecting}
-              >
-                {isConnecting ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Connect</Text>
-                )}
-              </Pressable>
-            )}
-          </View>
-        </SettingsSection>
-
-        {/* Proxy Headers */}
-        <SettingsSection 
-          title="Proxy Headers" 
-          icon="🔐" 
-          id="proxy"
-          badge={enabledHeadersCount}
-        >
-          <ProxyHeaderEditor
-            headers={settings.proxyHeaders || []}
-            onAdd={async () => {
-              await addProxyHeader();
-              handleProxyHeadersChanged();
-            }}
-            onUpdate={async (id, updates) => {
-              await updateProxyHeader(id, updates);
-              handleProxyHeadersChanged();
-            }}
-            onDelete={async (id) => {
-              await deleteProxyHeader(id);
-              handleProxyHeadersChanged();
-            }}
-            onToggle={async (id) => {
-              await toggleProxyHeader(id);
-              handleProxyHeadersChanged();
-            }}
-          />
-        </SettingsSection>
-
-        {/* Adventure Clustering */}
-        <SettingsSection title="Adventure Detection" icon="🗺️" id="clustering">
-          <SettingRow
-            label="Time Window"
-            description="Hours between photos to group as same adventure"
-          >
-            <View style={styles.numberInputContainer}>
-              <Pressable
-                style={styles.numberButton}
-                onPress={() => updateSettings({ clusterTimeWindow: Math.max(1, settings.clusterTimeWindow - 6) })}
-              >
-                <Text style={styles.numberButtonText}>−</Text>
-              </Pressable>
-              <Text style={styles.numberValue}>{settings.clusterTimeWindow}h</Text>
-              <Pressable
-                style={styles.numberButton}
-                onPress={() => updateSettings({ clusterTimeWindow: settings.clusterTimeWindow + 6 })}
-              >
-                <Text style={styles.numberButtonText}>+</Text>
-              </Pressable>
-            </View>
-          </SettingRow>
-
-          <SettingRow
-            label="Distance Threshold"
-            description="Max km between photos in same adventure"
-          >
-            <View style={styles.numberInputContainer}>
-              <Pressable
-                style={styles.numberButton}
-                onPress={() => updateSettings({ clusterDistanceKm: Math.max(10, settings.clusterDistanceKm - 10) })}
-              >
-                <Text style={styles.numberButtonText}>−</Text>
-              </Pressable>
-              <Text style={styles.numberValue}>{settings.clusterDistanceKm}km</Text>
-              <Pressable
-                style={styles.numberButton}
-                onPress={() => updateSettings({ clusterDistanceKm: settings.clusterDistanceKm + 10 })}
-              >
-                <Text style={styles.numberButtonText}>+</Text>
-              </Pressable>
-            </View>
-          </SettingRow>
-
-          <SettingRow
-            label="Minimum Photos"
-            description="Min photos required to create an adventure"
-          >
-            <View style={styles.numberInputContainer}>
-              <Pressable
-                style={styles.numberButton}
-                onPress={() => updateSettings({ minPhotosPerAdventure: Math.max(2, settings.minPhotosPerAdventure - 1) })}
-              >
-                <Text style={styles.numberButtonText}>−</Text>
-              </Pressable>
-              <Text style={styles.numberValue}>{settings.minPhotosPerAdventure}</Text>
-              <Pressable
-                style={styles.numberButton}
-                onPress={() => updateSettings({ minPhotosPerAdventure: settings.minPhotosPerAdventure + 1 })}
-              >
-                <Text style={styles.numberButtonText}>+</Text>
-              </Pressable>
-            </View>
-          </SettingRow>
-        </SettingsSection>
-
-        {/* Display Settings */}
-        <SettingsSection title="Display" icon="🎨" id="display">
-          <SettingRow
-            label="Show Route Lines"
-            description="Display travel routes on the map"
-          >
-            <Switch
-              value={settings.showRouteLines}
-              onValueChange={(v) => updateSettings({ showRouteLines: v })}
-              trackColor={{ false: "#334155", true: "#3b82f6" }}
-              thumbColor="#ffffff"
-            />
-          </SettingRow>
-
-          <SettingRow
-            label="Auto-generate Summaries"
-            description="Create AI summaries for adventures"
-          >
-            <Switch
-              value={settings.autoGenerateSummaries}
-              onValueChange={(v) => updateSettings({ autoGenerateSummaries: v })}
-              trackColor={{ false: "#334155", true: "#3b82f6" }}
-              thumbColor="#ffffff"
-            />
-          </SettingRow>
-
-          <SettingRow
-            label="Default View"
-            description="Starting view when opening the app"
-          >
-            <View style={styles.segmentedControl}>
-              <Pressable
-                style={[
-                  styles.segmentButton,
-                  settings.defaultView === "map" && styles.segmentButtonActive,
-                ]}
-                onPress={() => updateSettings({ defaultView: "map" })}
-              >
-                <Text style={[
-                  styles.segmentButtonText,
-                  settings.defaultView === "map" && styles.segmentButtonTextActive,
-                ]}>
-                  Map
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.segmentButton,
-                  settings.defaultView === "timeline" && styles.segmentButtonActive,
-                ]}
-                onPress={() => updateSettings({ defaultView: "timeline" })}
-              >
-                <Text style={[
-                  styles.segmentButtonText,
-                  settings.defaultView === "timeline" && styles.segmentButtonTextActive,
-                ]}>
-                  Timeline
-                </Text>
-              </Pressable>
-            </View>
-          </SettingRow>
-        </SettingsSection>
-
-        {/* Data Management */}
-        <SettingsSection title="Data Management" icon="💾" id="data">
-          <Pressable
-            style={styles.actionButton}
-            onPress={handleExportData}
-            disabled={isExporting}
-          >
-            <View style={styles.actionButtonIcon}>
-              <Text style={styles.actionIconText}>📤</Text>
-            </View>
-            <View style={styles.actionButtonContent}>
-              <Text style={styles.actionButtonTitle}>
-                {isExporting ? "Exporting..." : "Export All Data"}
-              </Text>
-              <Text style={styles.actionButtonDescription}>
-                Download a backup of all your adventures and settings
-              </Text>
-            </View>
-            {isExporting && <ActivityIndicator size="small" color="#3b82f6" />}
-          </Pressable>
-
-          <Pressable style={styles.actionButton} onPress={handleClearCache}>
-            <View style={styles.actionButtonIcon}>
-              <Text style={styles.actionIconText}>🗑️</Text>
-            </View>
-            <View style={styles.actionButtonContent}>
-              <Text style={styles.actionButtonTitle}>Clear Cache</Text>
-              <Text style={styles.actionButtonDescription}>
-                Remove temporary files to free up space
-              </Text>
-            </View>
-          </Pressable>
-
-          <Pressable style={styles.actionButton} onPress={handleResetSettings}>
-            <View style={styles.actionButtonIcon}>
-              <Text style={styles.actionIconText}>🔄</Text>
-            </View>
-            <View style={styles.actionButtonContent}>
-              <Text style={styles.actionButtonTitle}>Reset Settings</Text>
-              <Text style={styles.actionButtonDescription}>
-                Restore all settings to default values
-              </Text>
-            </View>
-          </Pressable>
-
-          <Pressable
-            style={[styles.actionButton, styles.dangerActionButton]}
-            onPress={handleClearAllData}
-          >
-            <View style={[styles.actionButtonIcon, styles.dangerIcon]}>
-              <Text style={styles.actionIconText}>⚠️</Text>
-            </View>
-            <View style={styles.actionButtonContent}>
-              <Text style={[styles.actionButtonTitle, styles.dangerText]}>
-                Delete All Data
-              </Text>
-              <Text style={styles.actionButtonDescription}>
-                Permanently remove all adventures and settings
-              </Text>
-            </View>
-          </Pressable>
-        </SettingsSection>
-
-        {/* About */}
-        <SettingsSection title="About" icon="ℹ️" id="about">
-          <View style={styles.aboutContent}>
-            <View style={styles.appInfo}>
-              <Text style={styles.appName}>Travel Log</Text>
-              <Text style={styles.appVersion}>Version 1.0.0</Text>
-            </View>
-            
-            <Text style={styles.aboutDescription}>
-              Automatically organize your travel photos into beautiful adventures. 
-              Connect to your Immich server to sync your media and discover your journeys.
-            </Text>
-
-            <View style={styles.aboutLinks}>
-              <View style={styles.aboutLinkRow}>
-                <Text style={styles.aboutLinkLabel}>Storage:</Text>
-                <Text style={styles.aboutLinkValue}>
-                  {typeof window !== "undefined" ? "Server API" : "Local Storage"}
+            <Pressable style={styles.actionButton} onPress={handleClearCache}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionIconText}>🗑️</Text>
+              </View>
+              <View style={styles.actionButtonContent}>
+                <Text style={styles.actionButtonTitle}>Clear Cache</Text>
+                <Text style={styles.actionButtonDescription}>
+                  Remove temporary files to free up space
                 </Text>
               </View>
-              <View style={styles.aboutLinkRow}>
-                <Text style={styles.aboutLinkLabel}>Platform:</Text>
-                <Text style={styles.aboutLinkValue}>
-                  {typeof window !== "undefined" ? "Web" : "Native"}
+            </Pressable>
+
+            <Pressable style={styles.actionButton} onPress={handleResetSettings}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionIconText}>🔄</Text>
+              </View>
+              <View style={styles.actionButtonContent}>
+                <Text style={styles.actionButtonTitle}>Reset Settings</Text>
+                <Text style={styles.actionButtonDescription}>
+                  Restore all settings to default values
                 </Text>
               </View>
-            </View>
-          </View>
-        </SettingsSection>
+            </Pressable>
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </View>
+            <Pressable
+              style={[styles.actionButton, styles.dangerActionButton]}
+              onPress={handleClearAllData}
+            >
+              <View style={[styles.actionButtonIcon, styles.dangerIcon]}>
+                <Text style={styles.actionIconText}>⚠️</Text>
+              </View>
+              <View style={styles.actionButtonContent}>
+                <Text style={[styles.actionButtonTitle, styles.dangerText]}>
+                  Delete All Data
+                </Text>
+                <Text style={styles.actionButtonDescription}>
+                  Permanently remove all adventures and settings
+                </Text>
+              </View>
+            </Pressable>
+          </SettingsSection>
+
+          {/* About */}
+          <SettingsSection title="About" icon="ℹ️" id="about">
+            <View style={styles.aboutContent}>
+              <View style={styles.appInfo}>
+                <Text style={styles.appName}>Travel Log</Text>
+                <Text style={styles.appVersion}>Version 1.0.0</Text>
+              </View>
+              
+              <Text style={styles.aboutDescription}>
+                Automatically organize your travel photos into beautiful adventures. 
+                Connect to your Immich server to sync your media and discover your journeys.
+              </Text>
+
+              <View style={styles.aboutLinks}>
+                <View style={styles.aboutLinkRow}>
+                  <Text style={styles.aboutLinkLabel}>AI Provider:</Text>
+                  <Text style={styles.aboutLinkValue}>
+                    {aiConfig.provider === "vertex" ? "Google Vertex AI" : "OpenAI"}
+                  </Text>
+                </View>
+                <View style={styles.aboutLinkRow}>
+                  <Text style={styles.aboutLinkLabel}>AI Model:</Text>
+                  <Text style={styles.aboutLinkValue}>{aiConfig.model}</Text>
+                </View>
+                <View style={styles.aboutLinkRow}>
+                  <Text style={styles.aboutLinkLabel}>Storage:</Text>
+                  <Text style={styles.aboutLinkValue}>PostgreSQL</Text>
+                </View>
+              </View>
+            </View>
+          </SettingsSection>
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
   },
   header: {
     flexDirection: "row",
@@ -625,14 +877,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#1e293b",
+    borderRadius: 22,
+    overflow: "hidden",
+  },
+  backButtonBlur: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -642,19 +895,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#ffffff",
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
   },
   statusCard: {
-    backgroundColor: "#1e293b",
-    borderRadius: 16,
-    padding: 20,
     marginBottom: 20,
   },
   statusHeader: {
@@ -674,6 +923,10 @@ const styles = StyleSheet.create({
   },
   statusConnected: {
     backgroundColor: "#22c55e",
+    shadowColor: "#22c55e",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
   },
   statusDisconnected: {
     backgroundColor: "#ef4444",
@@ -684,27 +937,30 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   syncButton: {
-    backgroundColor: "#0f172a",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  syncButtonGradient: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   syncButtonText: {
     color: "#3b82f6",
     fontWeight: "600",
   },
   serverUrlText: {
-    color: "#94a3b8",
+    color: "rgba(255,255,255,0.6)",
     fontSize: 13,
     marginTop: 8,
   },
   lastSyncText: {
-    color: "#64748b",
+    color: "rgba(255,255,255,0.4)",
     fontSize: 12,
     marginTop: 4,
   },
   proxyBadge: {
-    backgroundColor: "#1e3a5f",
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -717,16 +973,21 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   section: {
-    backgroundColor: "#1e293b",
-    borderRadius: 16,
     marginBottom: 16,
-    overflow: "hidden",
   },
   sectionHeader: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  sectionHeaderBlur: {
+    borderRadius: 16,
+  },
+  sectionHeaderGradient: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    padding: 16,
+    borderRadius: 16,
   },
   sectionTitleRow: {
     flexDirection: "row",
@@ -754,40 +1015,38 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   sectionChevron: {
-    color: "#64748b",
+    color: "rgba(255,255,255,0.5)",
     fontSize: 12,
   },
   sectionContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#334155",
+    marginTop: 8,
   },
   inputGroup: {
-    marginTop: 16,
+    marginBottom: 16,
   },
   inputLabel: {
-    color: "#94a3b8",
-    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    fontWeight: "600",
     marginBottom: 8,
-    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  inputContainer: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  inputBlur: {
+    borderRadius: 12,
   },
   input: {
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
     padding: 16,
     color: "#ffffff",
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#334155",
   },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#334155",
   },
   passwordInput: {
     flex: 1,
@@ -802,46 +1061,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   inputHint: {
-    color: "#64748b",
+    color: "rgba(255,255,255,0.4)",
     fontSize: 12,
     marginTop: 8,
   },
   buttonRow: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 20,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 48,
-  },
-  primaryButton: {
-    backgroundColor: "#3b82f6",
-  },
-  primaryButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  secondaryButton: {
-    backgroundColor: "#334155",
-  },
-  secondaryButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  dangerButton: {
-    backgroundColor: "#7f1d1d",
-  },
-  dangerButtonText: {
-    color: "#fca5a5",
-    fontWeight: "600",
-    fontSize: 16,
+    marginTop: 8,
   },
   settingRow: {
     flexDirection: "row",
@@ -849,7 +1076,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#334155",
+    borderBottomColor: "rgba(255,255,255,0.1)",
   },
   settingInfo: {
     flex: 1,
@@ -861,14 +1088,14 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   settingDescription: {
-    color: "#64748b",
+    color: "rgba(255,255,255,0.5)",
     fontSize: 13,
     marginTop: 4,
   },
   numberInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0f172a",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 10,
     padding: 4,
   },
@@ -876,7 +1103,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: "#334155",
+    backgroundColor: "rgba(255,255,255,0.1)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -894,7 +1121,7 @@ const styles = StyleSheet.create({
   },
   segmentedControl: {
     flexDirection: "row",
-    backgroundColor: "#0f172a",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 10,
     padding: 4,
   },
@@ -907,7 +1134,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#3b82f6",
   },
   segmentButtonText: {
-    color: "#64748b",
+    color: "rgba(255,255,255,0.5)",
     fontSize: 14,
     fontWeight: "500",
   },
@@ -917,26 +1144,26 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0f172a",
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 12,
     padding: 16,
-    marginTop: 12,
+    marginBottom: 12,
   },
   dangerActionButton: {
     borderWidth: 1,
-    borderColor: "#7f1d1d",
+    borderColor: "rgba(239, 68, 68, 0.3)",
   },
   actionButtonIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: "#1e293b",
+    backgroundColor: "rgba(255,255,255,0.1)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
   },
   dangerIcon: {
-    backgroundColor: "#7f1d1d",
+    backgroundColor: "rgba(239, 68, 68, 0.2)",
   },
   actionIconText: {
     fontSize: 20,
@@ -950,7 +1177,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   actionButtonDescription: {
-    color: "#64748b",
+    color: "rgba(255,255,255,0.5)",
     fontSize: 13,
     marginTop: 2,
   },
@@ -958,7 +1185,7 @@ const styles = StyleSheet.create({
     color: "#fca5a5",
   },
   aboutContent: {
-    paddingTop: 16,
+    alignItems: "center",
   },
   appInfo: {
     alignItems: "center",
@@ -970,19 +1197,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   appVersion: {
-    color: "#64748b",
+    color: "rgba(255,255,255,0.5)",
     fontSize: 14,
     marginTop: 4,
   },
   aboutDescription: {
-    color: "#94a3b8",
+    color: "rgba(255,255,255,0.7)",
     fontSize: 14,
     lineHeight: 22,
     textAlign: "center",
     marginBottom: 20,
   },
   aboutLinks: {
-    backgroundColor: "#0f172a",
+    width: "100%",
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 12,
     padding: 16,
   },
@@ -992,12 +1220,166 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   aboutLinkLabel: {
-    color: "#64748b",
+    color: "rgba(255,255,255,0.5)",
     fontSize: 14,
   },
   aboutLinkValue: {
     color: "#ffffff",
     fontSize: 14,
     fontWeight: "500",
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: "center",
+  },
+  subsectionTitle: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  providerGrid: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  providerCard: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  providerCardActive: {
+    borderColor: "#3b82f6",
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+  },
+  providerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  providerIcon: {
+    fontSize: 28,
+  },
+  providerStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  providerStatusConfigured: {
+    backgroundColor: "rgba(34, 197, 94, 0.2)",
+  },
+  providerStatusNotConfigured: {
+    backgroundColor: "rgba(239, 68, 68, 0.2)",
+  },
+  providerStatusText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+  providerName: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  providerDescription: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 12,
+  },
+  vertexConfig: {
+    marginBottom: 16,
+  },
+  infoBox: {
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#3b82f6",
+    marginTop: 16,
+  },
+  infoTitle: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  infoText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    lineHeight: 20,
+  },
+  modelList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  modelCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  modelCardActive: {
+    borderColor: "#3b82f6",
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+  },
+  modelInfo: {
+    flex: 1,
+  },
+  modelName: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  modelDescription: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  checkmark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkmarkText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  aiStatusCard: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 12,
+    padding: 16,
+  },
+  aiStatusRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  aiStatusLabel: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 14,
+  },
+  aiStatusValue: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  statusGreen: {
+    color: "#22c55e",
+  },
+  statusRed: {
+    color: "#ef4444",
   },
 });
