@@ -1,5 +1,16 @@
-// app/_layout.tsx
 import { Stack } from "expo-router";
+import { StatusBar } from "react-native";
+
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <>
+      <StatusBar barStyle="light-content" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: "#0f172a" },
+        }}
+      />
+    </>
+  );
 }
