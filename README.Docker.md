@@ -6,16 +6,18 @@ This guide explains how to deploy Travel Log as a Docker container with PostgreS
 
 ### 1. Configure Environment
 
-Copy the example environment file and add your OpenAI API key:
+Copy the example environment file and add your Gemini API key:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and add your OpenAI API key:
+Edit `.env` and add your Google Gemini API key:
 ```
-OPENAI_API_KEY=sk-your-openai-api-key-here
+GEMINI_API_KEY=your-gemini-api-key-here
 ```
+
+**Get your free Gemini API key at:** https://aistudio.google.com/app/apikey
 
 ### 2. Start with Docker Compose
 
@@ -39,15 +41,21 @@ Open `http://your-server-ip:3000` in your browser.
 |----------|---------|-------------|
 | `PORT` | `3000` | Port the server listens on |
 | `DATABASE_URL` | (auto) | PostgreSQL connection string |
-| `OPENAI_API_KEY` | - | Your OpenAI API key for AI features |
-| `AI_PROVIDER` | `openai` | AI provider (currently only openai) |
+| `GEMINI_API_KEY` | - | Your Google Gemini API key (recommended) |
+| `OPENAI_API_KEY` | - | Your OpenAI API key (alternative) |
 
 ### AI Features
 
 To enable AI-powered summaries and highlights:
 
+**Option 1: Google Gemini (Recommended - Free Tier Available)**
+1. Get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Add `GEMINI_API_KEY=your-key` to your `.env` file
+3. Restart the containers
+
+**Option 2: OpenAI**
 1. Get an API key from [OpenAI](https://platform.openai.com/api-keys)
-2. Add it to your `.env` file or docker-compose.yml
+2. Add `OPENAI_API_KEY=your-key` to your `.env` file
 3. Restart the containers
 
 AI features include:
@@ -110,9 +118,9 @@ cat backup.sql | docker exec -i travel-log-db psql -U travellog travellog
 - Wait for database to initialize on first start
 
 ### AI Not Working
-- Verify OPENAI_API_KEY is set correctly
+- Verify GEMINI_API_KEY or OPENAI_API_KEY is set correctly
 - Check server logs: `docker-compose logs travel-log`
-- Ensure you have API credits on your OpenAI account
+- For Gemini: Ensure you have access to the API (check quotas at Google AI Studio)
 
 ### Container Won't Start
 - Check logs: `docker-compose logs`
@@ -131,5 +139,8 @@ Returns:
   "status": "ok",
   "timestamp": "...",
   "database": "connected",
-  "ai": "configured"
+  "ai": {
+    "openai": "not configured",
+    "gemini": "configured"
+  }
 }

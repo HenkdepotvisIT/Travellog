@@ -31,7 +31,7 @@ const OPENAI_MODELS = [
   { id: "gpt-4-turbo", name: "GPT-4 Turbo", description: "High performance" },
 ];
 
-const VERTEX_MODELS = [
+const GEMINI_MODELS = [
   { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", description: "Fast & efficient" },
   { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Most capable" },
   { id: "gemini-1.0-pro", name: "Gemini 1.0 Pro", description: "Balanced" },
@@ -61,8 +61,6 @@ export default function SettingsScreen() {
   const [activeSection, setActiveSection] = useState<string | null>(null);
   
   // AI Settings state
-  const [vertexProject, setVertexProject] = useState(aiConfig.vertexProject || "");
-  const [vertexLocation, setVertexLocation] = useState(aiConfig.vertexLocation || "us-central1");
   const [isSavingAI, setIsSavingAI] = useState(false);
 
   useEffect(() => {
@@ -70,15 +68,6 @@ export default function SettingsScreen() {
       setNewServerUrl(serverUrl);
     }
   }, [serverUrl]);
-
-  useEffect(() => {
-    if (aiConfig.vertexProject) {
-      setVertexProject(aiConfig.vertexProject);
-    }
-    if (aiConfig.vertexLocation) {
-      setVertexLocation(aiConfig.vertexLocation);
-    }
-  }, [aiConfig]);
 
   const handleTestConnection = async () => {
     if (!newServerUrl) {
@@ -209,7 +198,7 @@ export default function SettingsScreen() {
   const handleAIProviderChange = async (provider: string) => {
     setIsSavingAI(true);
     try {
-      const defaultModel = provider === "vertex" ? "gemini-1.5-flash" : "gpt-4o-mini";
+      const defaultModel = provider === "gemini" ? "gemini-1.5-flash" : "gpt-4o-mini";
       await updateAIConfig({ provider, model: defaultModel });
     } finally {
       setIsSavingAI(false);
@@ -220,16 +209,6 @@ export default function SettingsScreen() {
     setIsSavingAI(true);
     try {
       await updateAIConfig({ model });
-    } finally {
-      setIsSavingAI(false);
-    }
-  };
-
-  const handleVertexConfigSave = async () => {
-    setIsSavingAI(true);
-    try {
-      await updateAIConfig({ vertexProject, vertexLocation });
-      Alert.alert("✅ Saved", "Vertex AI configuration saved successfully");
     } finally {
       setIsSavingAI(false);
     }
@@ -302,7 +281,7 @@ export default function SettingsScreen() {
   );
 
   const enabledHeadersCount = (settings.proxyHeaders || []).filter(h => h.enabled && h.key && h.value).length;
-  const aiModels = aiConfig.provider === "vertex" ? VERTEX_MODELS : OPENAI_MODELS;
+  const aiModels = aiConfig.provider === "gemini" ? GEMINI_MODELS : OPENAI_MODELS;
 
   return (
     <GradientBackground>
@@ -458,6 +437,32 @@ export default function SettingsScreen() {
                   <Pressable
                     style={[
                       styles.providerCard,
+                      aiConfig.provider === "gemini" && styles.providerCardActive,
+                    ]}
+                    onPress={() => handleAIProviderChange("gemini")}
+                  >
+                    <View style={styles.providerHeader}>
+                      <Text style={styles.providerIcon}>✨</Text>
+                      <View
+                        style={[
+                          styles.providerStatusBadge,
+                          aiConfig.availableProviders?.gemini
+                            ? styles.providerStatusConfigured
+                            : styles.providerStatusNotConfigured,
+                        ]}
+                      >
+                        <Text style={styles.providerStatusText}>
+                          {aiConfig.availableProviders?.gemini ? "Ready" : "Not Set"}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.providerName}>Google Gemini</Text>
+                    <Text style={styles.providerDescription}>Free tier available</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.providerCard,
                       aiConfig.provider === "openai" && styles.providerCardActive,
                     ]}
                     onPress={() => handleAIProviderChange("openai")}
@@ -480,89 +485,7 @@ export default function SettingsScreen() {
                     <Text style={styles.providerName}>OpenAI</Text>
                     <Text style={styles.providerDescription}>GPT-4o models</Text>
                   </Pressable>
-
-                  <Pressable
-                    style={[
-                      styles.providerCard,
-                      aiConfig.provider === "vertex" && styles.providerCardActive,
-                    ]}
-                    onPress={() => handleAIProviderChange("vertex")}
-                  >
-                    <View style={styles.providerHeader}>
-                      <Text style={styles.providerIcon}>🔷</Text>
-                      <View
-                        style={[
-                          styles.providerStatusBadge,
-                          aiConfig.availableProviders?.vertex
-                            ? styles.providerStatusConfigured
-                            : styles.providerStatusNotConfigured,
-                        ]}
-                      >
-                        <Text style={styles.providerStatusText}>
-                          {aiConfig.availableProviders?.vertex ? "Ready" : "Not Set"}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.providerName}>Vertex AI</Text>
-                    <Text style={styles.providerDescription}>Gemini models</Text>
-                  </Pressable>
                 </View>
-
-                {/* Vertex AI Configuration */}
-                {aiConfig.provider === "vertex" && (
-                  <View style={styles.vertexConfig}>
-                    <Text style={styles.subsectionTitle}>Vertex AI Settings</Text>
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Project ID</Text>
-                      <View style={styles.inputContainer}>
-                        <BlurView intensity={40} tint="dark" style={styles.inputBlur}>
-                          <TextInput
-                            style={styles.input}
-                            value={vertexProject}
-                            onChangeText={setVertexProject}
-                            placeholder="your-gcp-project-id"
-                            placeholderTextColor="rgba(255,255,255,0.3)"
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                          />
-                        </BlurView>
-                      </View>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Location</Text>
-                      <View style={styles.inputContainer}>
-                        <BlurView intensity={40} tint="dark" style={styles.inputBlur}>
-                          <TextInput
-                            style={styles.input}
-                            value={vertexLocation}
-                            onChangeText={setVertexLocation}
-                            placeholder="us-central1"
-                            placeholderTextColor="rgba(255,255,255,0.3)"
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                          />
-                        </BlurView>
-                      </View>
-                    </View>
-
-                    <AnimatedButton
-                      title={isSavingAI ? "Saving..." : "Save Vertex Config"}
-                      variant="primary"
-                      onPress={handleVertexConfigSave}
-                      disabled={isSavingAI}
-                    />
-
-                    <View style={styles.infoBox}>
-                      <Text style={styles.infoTitle}>📋 Setup Instructions</Text>
-                      <Text style={styles.infoText}>
-                        1. Set GOOGLE_CLOUD_PROJECT env variable{"\n"}
-                        2. Set GOOGLE_APPLICATION_CREDENTIALS to your service account key{"\n"}
-                        3. Ensure the service account has Vertex AI User role
-                      </Text>
-                    </View>
-                  </View>
-                )}
 
                 {/* Model Selection */}
                 <Text style={styles.subsectionTitle}>Model</Text>
@@ -603,6 +526,19 @@ export default function SettingsScreen() {
                     </Text>
                   </View>
                 </View>
+
+                {/* Setup Instructions */}
+                {!aiConfig.isConfigured && (
+                  <View style={styles.infoBox}>
+                    <Text style={styles.infoTitle}>📋 Setup Instructions</Text>
+                    <Text style={styles.infoText}>
+                      {aiConfig.provider === "gemini" 
+                        ? "1. Get a free API key at aistudio.google.com\n2. Set GEMINI_API_KEY in your .env file\n3. Restart the server"
+                        : "1. Get an API key at platform.openai.com\n2. Set OPENAI_API_KEY in your .env file\n3. Restart the server"
+                      }
+                    </Text>
+                  </View>
+                )}
               </>
             )}
           </SettingsSection>
@@ -844,7 +780,7 @@ export default function SettingsScreen() {
                 <View style={styles.aboutLinkRow}>
                   <Text style={styles.aboutLinkLabel}>AI Provider:</Text>
                   <Text style={styles.aboutLinkValue}>
-                    {aiConfig.provider === "vertex" ? "Google Vertex AI" : "OpenAI"}
+                    {aiConfig.provider === "gemini" ? "Google Gemini" : "OpenAI"}
                   </Text>
                 </View>
                 <View style={styles.aboutLinkRow}>
@@ -1292,9 +1228,6 @@ const styles = StyleSheet.create({
   providerDescription: {
     color: "rgba(255,255,255,0.5)",
     fontSize: 12,
-  },
-  vertexConfig: {
-    marginBottom: 16,
   },
   infoBox: {
     backgroundColor: "rgba(59, 130, 246, 0.1)",

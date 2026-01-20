@@ -23,7 +23,7 @@ app.get('/api/health', async (req, res) => {
       database: 'connected',
       ai: {
         openai: aiStatus.openai ? 'configured' : 'not configured',
-        vertex: aiStatus.vertex ? 'configured' : 'not configured',
+        gemini: aiStatus.gemini ? 'configured' : 'not configured',
       }
     });
   } catch (error) {
@@ -230,12 +230,10 @@ app.get('/api/ai/config', async (req, res) => {
       provider: config.provider,
       model: config.model,
       autoGenerate: config.auto_generate,
-      vertexProject: config.vertex_project,
-      vertexLocation: config.vertex_location || 'us-central1',
-      isConfigured: config.provider === 'vertex' ? status.vertex : status.openai,
+      isConfigured: config.provider === 'gemini' ? status.gemini : status.openai,
       availableProviders: {
         openai: status.openai,
-        vertex: status.vertex,
+        gemini: status.gemini,
       },
     });
   } catch (error) {
@@ -246,18 +244,16 @@ app.get('/api/ai/config', async (req, res) => {
 
 app.post('/api/ai/config', async (req, res) => {
   try {
-    const { provider, model, autoGenerate, vertexProject, vertexLocation } = req.body;
+    const { provider, model, autoGenerate } = req.body;
     
     await db.query(`
       UPDATE ai_config SET
         provider = COALESCE($1, provider),
         model = COALESCE($2, model),
         auto_generate = COALESCE($3, auto_generate),
-        vertex_project = COALESCE($4, vertex_project),
-        vertex_location = COALESCE($5, vertex_location),
         updated_at = NOW()
       WHERE id = 1
-    `, [provider, model, autoGenerate, vertexProject, vertexLocation]);
+    `, [provider, model, autoGenerate]);
     
     res.json({ success: true });
   } catch (error) {
@@ -728,7 +724,7 @@ app.delete('/api/data', async (req, res) => {
     await db.query('DELETE FROM settings');
     await db.query('UPDATE connection SET server_url = NULL, api_key = NULL, is_connected = FALSE WHERE id = 1');
     await db.query('UPDATE sync_status SET last_sync_time = NULL WHERE id = 1');
-    await db.query('UPDATE ai_config SET provider = \'openai\', model = \'gpt-4o-mini\', auto_generate = FALSE, vertex_project = NULL WHERE id = 1');
+    await db.query('UPDATE ai_config SET provider = \'gemini\', model = \'gemini-1.5-flash\', auto_generate = FALSE WHERE id = 1');
     
     // Re-insert default settings
     await db.query(`
@@ -765,5 +761,5 @@ app.listen(PORT, '0.0.0.0', () => {
   const aiStatus = ai.isConfigured();
   console.log(`🤖 AI Providers:`);
   console.log(`   - OpenAI: ${aiStatus.openai ? '✅ configured' : '❌ not configured'}`);
-  console.log(`   - Vertex AI: ${aiStatus.vertex ? '✅ configured' : '❌ not configured'}`);
+  console.log(`   - Google Gemini: ${aiStatus.gemini ? '✅ configured' : '❌ not configured'}`);
 });

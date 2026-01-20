@@ -6,23 +6,21 @@ interface AIConfig {
   model: string;
   autoGenerate: boolean;
   isConfigured: boolean;
-  vertexProject?: string;
-  vertexLocation?: string;
   availableProviders?: {
     openai: boolean;
-    vertex: boolean;
+    gemini: boolean;
   };
 }
 
 export function useAI() {
   const [config, setConfig] = useState<AIConfig>({
-    provider: "openai",
-    model: "gpt-4o-mini",
+    provider: "gemini",
+    model: "gemini-1.5-flash",
     autoGenerate: false,
     isConfigured: false,
     availableProviders: {
       openai: false,
-      vertex: false,
+      gemini: false,
     },
   });
   const [isLoading, setIsLoading] = useState(true);

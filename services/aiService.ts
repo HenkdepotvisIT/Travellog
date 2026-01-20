@@ -16,11 +16,9 @@ interface AIConfig {
   model: string;
   autoGenerate: boolean;
   isConfigured: boolean;
-  vertexProject?: string;
-  vertexLocation?: string;
   availableProviders?: {
     openai: boolean;
-    vertex: boolean;
+    gemini: boolean;
   };
 }
 
@@ -40,13 +38,13 @@ class AIService {
     } catch (error) {
       console.error("Failed to get AI config:", error);
       return {
-        provider: "openai",
-        model: "gpt-4o-mini",
+        provider: "gemini",
+        model: "gemini-1.5-flash",
         autoGenerate: false,
         isConfigured: false,
         availableProviders: {
           openai: false,
-          vertex: false,
+          gemini: false,
         },
       };
     }

@@ -1,29 +1,24 @@
 const OpenAI = require('openai');
-const { VertexAI } = require('@google-cloud/vertexai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const db = require('./db');
 
 let openaiClient = null;
-let vertexClient = null;
-let vertexModel = null;
+let geminiClient = null;
 
 async function getAIConfig() {
   try {
     const result = await db.query('SELECT * FROM ai_config WHERE id = 1');
     return result.rows[0] || { 
-      provider: 'openai', 
-      model: 'gpt-4o-mini', 
+      provider: 'gemini', 
+      model: 'gemini-1.5-flash', 
       auto_generate: false,
-      vertex_project: null,
-      vertex_location: 'us-central1'
     };
   } catch (error) {
     console.error('Failed to get AI config:', error);
     return { 
-      provider: 'openai', 
-      model: 'gpt-4o-mini', 
+      provider: 'gemini', 
+      model: 'gemini-1.5-flash', 
       auto_generate: false,
-      vertex_project: null,
-      vertex_location: 'us-central1'
     };
   }
 }
@@ -39,55 +34,42 @@ function getOpenAIClient() {
   return openaiClient;
 }
 
-function getVertexClient(projectId, location = 'us-central1') {
-  // Vertex AI uses Application Default Credentials (ADC)
-  // Set GOOGLE_APPLICATION_CREDENTIALS env var to your service account key file
-  // Or run on GCP with appropriate service account
-  if (!projectId) {
-    projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.VERTEX_PROJECT_ID;
-  }
-  
-  if (!projectId) {
+function getGeminiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
     return null;
   }
-
-  if (!vertexClient) {
-    vertexClient = new VertexAI({
-      project: projectId,
-      location: location,
-    });
+  if (!geminiClient) {
+    geminiClient = new GoogleGenerativeAI(apiKey);
   }
-  return vertexClient;
+  return geminiClient;
 }
 
-function getVertexModel(config) {
-  const client = getVertexClient(config.vertex_project, config.vertex_location);
-  if (!client) return null;
+async function generateWithGemini(prompt, systemPrompt, config) {
+  const client = getGeminiClient();
+  if (!client) {
+    throw new Error('Gemini API key not configured. Set GEMINI_API_KEY environment variable.');
+  }
 
   const modelName = config.model || 'gemini-1.5-flash';
-  
-  return client.getGenerativeModel({
+  const model = client.getGenerativeModel({ 
     model: modelName,
     generationConfig: {
       maxOutputTokens: 1024,
       temperature: 0.7,
     },
   });
-}
 
-async function generateWithVertex(prompt, systemPrompt, config) {
-  const model = getVertexModel(config);
-  if (!model) {
-    throw new Error('Vertex AI not configured. Set GOOGLE_CLOUD_PROJECT and GOOGLE_APPLICATION_CREDENTIALS.');
-  }
-
-  const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
+  // Combine system prompt and user prompt for Gemini
+  const fullPrompt = systemPrompt 
+    ? `${systemPrompt}\n\n${prompt}` 
+    : prompt;
 
   const result = await model.generateContent(fullPrompt);
   const response = result.response;
-  const text = response.candidates[0]?.content?.parts[0]?.text || '';
+  const text = response.text();
   
-  // Vertex AI doesn't provide token counts in the same way, estimate based on characters
+  // Estimate tokens (Gemini doesn't always return token counts)
   const estimatedTokens = Math.ceil(text.length / 4);
 
   return {
@@ -119,8 +101,8 @@ async function generateWithOpenAI(prompt, systemPrompt, config) {
 }
 
 async function generateContent(prompt, systemPrompt, config) {
-  if (config.provider === 'vertex' || config.provider === 'google') {
-    return generateWithVertex(prompt, systemPrompt, config);
+  if (config.provider === 'gemini' || config.provider === 'google') {
+    return generateWithGemini(prompt, systemPrompt, config);
   } else {
     return generateWithOpenAI(prompt, systemPrompt, config);
   }
@@ -316,7 +298,7 @@ async function regenerateAll(adventure) {
 function isConfigured() {
   const config = {
     openai: !!process.env.OPENAI_API_KEY,
-    vertex: !!(process.env.GOOGLE_CLOUD_PROJECT || process.env.VERTEX_PROJECT_ID),
+    gemini: !!process.env.GEMINI_API_KEY,
   };
   return config;
 }
