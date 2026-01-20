@@ -14,7 +14,7 @@ interface GlassCardProps {
 export default function GlassCard({
   children,
   style,
-  intensity = 40,
+  intensity = 60,
   delay = 0,
   direction = "up",
 }: GlassCardProps) {
@@ -28,12 +28,12 @@ export default function GlassCard({
   return (
     <Animated.View entering={enterAnimation} style={[styles.container, style]}>
       <View style={styles.glassContainer}>
-        <BlurView intensity={intensity} tint="dark" style={styles.blur}>
+        <BlurView intensity={intensity} tint="light" style={styles.blur}>
           <LinearGradient
             colors={[
-              "rgba(255, 255, 255, 0.12)",
-              "rgba(255, 255, 255, 0.05)",
-              "rgba(255, 255, 255, 0.02)",
+              "rgba(255, 255, 255, 0.9)",
+              "rgba(255, 255, 255, 0.7)",
+              "rgba(255, 255, 255, 0.5)",
             ]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -43,6 +43,7 @@ export default function GlassCard({
           </LinearGradient>
         </BlurView>
         <View style={styles.border} />
+        <View style={styles.shadow} />
       </View>
     </Animated.View>
   );
@@ -51,10 +52,12 @@ export default function GlassCard({
 const styles = StyleSheet.create({
   container: {
     borderRadius: 24,
-    overflow: "hidden",
+    overflow: "visible",
   },
   glassContainer: {
     position: "relative",
+    borderRadius: 24,
+    overflow: "hidden",
   },
   blur: {
     overflow: "hidden",
@@ -70,7 +73,18 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "rgba(0, 0, 0, 0.08)",
+    pointerEvents: "none",
+  },
+  shadow: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    backgroundColor: "transparent",
     pointerEvents: "none",
   },
 });

@@ -6,7 +6,6 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
-  interpolate,
 } from "react-native-reanimated";
 import { useEffect } from "react";
 
@@ -33,14 +32,13 @@ function FloatingParticle({
 }) {
   const translateY = useSharedValue(0);
   const translateX = useSharedValue(0);
-  const opacity = useSharedValue(0.3);
+  const opacity = useSharedValue(0.4);
   const scale = useSharedValue(1);
 
   useEffect(() => {
     if (Platform.OS !== "web") {
-      // Vertical floating motion
       translateY.value = withRepeat(
-        withTiming(-50, { 
+        withTiming(-40, { 
           duration: duration + Math.random() * 2000, 
           easing: Easing.inOut(Easing.sine) 
         }),
@@ -48,9 +46,8 @@ function FloatingParticle({
         true
       );
 
-      // Horizontal drift
       translateX.value = withRepeat(
-        withTiming(30, { 
+        withTiming(25, { 
           duration: duration * 1.5, 
           easing: Easing.inOut(Easing.sine) 
         }),
@@ -58,7 +55,6 @@ function FloatingParticle({
         true
       );
 
-      // Opacity pulse
       opacity.value = withRepeat(
         withTiming(0.1, { 
           duration: duration * 0.8, 
@@ -68,9 +64,8 @@ function FloatingParticle({
         true
       );
 
-      // Scale pulse
       scale.value = withRepeat(
-        withTiming(1.2, { 
+        withTiming(1.1, { 
           duration: duration * 1.2, 
           easing: Easing.inOut(Easing.ease) 
         }),
@@ -83,7 +78,7 @@ function FloatingParticle({
   const animatedStyle = useAnimatedStyle(() => {
     if (Platform.OS === "web") {
       return {
-        opacity: 0.2,
+        opacity: 0.15,
       };
     }
     return {
@@ -132,25 +127,25 @@ function MovingOrb({
   useEffect(() => {
     if (Platform.OS !== "web") {
       rotation.value = withRepeat(
-        withTiming(360, { duration: 25000, easing: Easing.linear }),
+        withTiming(360, { duration: 30000, easing: Easing.linear }),
         -1,
         false
       );
 
       translateX.value = withRepeat(
-        withTiming(50, { duration: 8000, easing: Easing.inOut(Easing.sine) }),
+        withTiming(40, { duration: 10000, easing: Easing.inOut(Easing.sine) }),
         -1,
         true
       );
 
       translateY.value = withRepeat(
-        withTiming(30, { duration: 12000, easing: Easing.inOut(Easing.sine) }),
+        withTiming(25, { duration: 15000, easing: Easing.inOut(Easing.sine) }),
         -1,
         true
       );
 
       scale.value = withRepeat(
-        withTiming(1.1, { duration: 6000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1.05, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
         -1,
         true
       );
@@ -190,48 +185,48 @@ function MovingOrb({
 }
 
 export default function GradientBackground({ children }: GradientBackgroundProps) {
-  // Generate random particles
-  const particles = Array.from({ length: 12 }, (_, i) => ({
+  // Generate light-colored particles
+  const particles = Array.from({ length: 8 }, (_, i) => ({
     id: i,
-    size: Math.random() * 4 + 2,
-    color: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981'][Math.floor(Math.random() * 4)],
+    size: Math.random() * 3 + 2,
+    color: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'][Math.floor(Math.random() * 5)],
     initialX: Math.random() * width,
     initialY: Math.random() * height,
-    duration: Math.random() * 3000 + 4000,
+    duration: Math.random() * 4000 + 5000,
     delay: Math.random() * 2000,
   }));
 
   return (
     <View style={styles.container}>
-      {/* Base gradient */}
+      {/* Light gradient background */}
       <LinearGradient
-        colors={["#0a0a1a", "#0f172a", "#1a1a2e"]}
+        colors={["#f8fafc", "#e2e8f0", "#cbd5e1"]}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Moving orbs */}
+      {/* Subtle colored orbs */}
       <View style={styles.orbContainer}>
         <MovingOrb
-          size={width * 0.8}
-          color="#3b82f6"
-          initialPosition={{ x: -width * 0.2, y: -width * 0.2 }}
+          size={width * 0.6}
+          color="rgba(59, 130, 246, 0.08)"
+          initialPosition={{ x: -width * 0.1, y: -width * 0.1 }}
           shadowColor="#3b82f6"
         />
         <MovingOrb
-          size={width * 0.6}
-          color="#8b5cf6"
-          initialPosition={{ x: width * 0.6, y: height * 0.7 }}
+          size={width * 0.5}
+          color="rgba(139, 92, 246, 0.06)"
+          initialPosition={{ x: width * 0.7, y: height * 0.8 }}
           shadowColor="#8b5cf6"
         />
         <MovingOrb
-          size={width * 0.5}
-          color="#06b6d4"
-          initialPosition={{ x: -width * 0.1, y: height * 0.8 }}
+          size={width * 0.4}
+          color="rgba(6, 182, 212, 0.05)"
+          initialPosition={{ x: -width * 0.05, y: height * 0.9 }}
           shadowColor="#06b6d4"
         />
       </View>
 
-      {/* Floating particles */}
+      {/* Light floating particles */}
       <View style={styles.particleContainer}>
         {particles.map((particle) => (
           <FloatingParticle
@@ -248,38 +243,35 @@ export default function GradientBackground({ children }: GradientBackgroundProps
 
       {/* Subtle grid overlay */}
       <View style={styles.gridOverlay}>
-        {Array.from({ length: 20 }).map((_, i) => (
+        {Array.from({ length: 15 }).map((_, i) => (
           <View
             key={`h-${i}`}
             style={[
               styles.gridLine,
               {
-                top: `${i * 5}%`,
+                top: `${i * 6.67}%`,
                 width: '100%',
                 height: 1,
-                opacity: 0.03,
+                opacity: 0.02,
               },
             ]}
           />
         ))}
-        {Array.from({ length: 15 }).map((_, i) => (
+        {Array.from({ length: 12 }).map((_, i) => (
           <View
             key={`v-${i}`}
             style={[
               styles.gridLine,
               {
-                left: `${i * 6.67}%`,
+                left: `${i * 8.33}%`,
                 height: '100%',
                 width: 1,
-                opacity: 0.03,
+                opacity: 0.02,
               },
             ]}
           />
         ))}
       </View>
-
-      {/* Noise overlay */}
-      <View style={styles.noiseOverlay} />
 
       {/* Content */}
       <View style={styles.content}>{children}</View>
@@ -290,7 +282,7 @@ export default function GradientBackground({ children }: GradientBackgroundProps
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0a0a1a",
+    backgroundColor: "#f8fafc",
   },
   orbContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -298,10 +290,9 @@ const styles = StyleSheet.create({
   orb: {
     position: "absolute",
     borderRadius: 999,
-    opacity: 0.4,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 100,
+    shadowOpacity: 0.1,
+    shadowRadius: 50,
   },
   particleContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -310,19 +301,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     borderRadius: 999,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
   gridLine: {
     position: "absolute",
-    backgroundColor: "#3b82f6",
-  },
-  noiseOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    backgroundColor: "#64748b",
   },
   content: {
     flex: 1,

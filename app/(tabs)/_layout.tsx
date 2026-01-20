@@ -32,16 +32,21 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#0f172a",
-          borderTopColor: "rgba(255, 255, 255, 0.1)",
+          backgroundColor: "#ffffff",
+          borderTopColor: "rgba(0, 0, 0, 0.1)",
           borderTopWidth: 1,
           paddingBottom: Platform.OS === "ios" ? (isVerySmall ? 16 : isSmallScreen ? 20 : 24) : (isVerySmall ? 2 : isSmallScreen ? 4 : 8),
           paddingTop: isVerySmall ? 2 : isSmallScreen ? 4 : 8,
           height: Platform.OS === "ios" ? (isVerySmall ? 72 : isSmallScreen ? 80 : 88) : (isVerySmall ? 48 : isSmallScreen ? 56 : 64),
           paddingHorizontal: isVerySmall ? 4 : isSmallScreen ? 8 : 16,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 8,
         },
         tabBarActiveTintColor: "#3b82f6",
-        tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)",
+        tabBarInactiveTintColor: "#64748b",
         tabBarLabelStyle: {
           fontSize: isVerySmall ? 8 : isSmallScreen ? 9 : 11,
           fontWeight: "600",
@@ -96,7 +101,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconContainerActive: {
-    backgroundColor: "rgba(59, 130, 246, 0.2)",
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
   },
   iconContainerSmall: {
     width: 24,
