@@ -9,9 +9,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { Adventure } from "../types";
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = width * 0.8;
-
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface AdventureCardHorizontalProps {
@@ -32,7 +29,7 @@ export default function AdventureCardHorizontal({
   }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {
@@ -45,7 +42,7 @@ export default function AdventureCardHorizontal({
     : FadeInRight.delay(index * 150).springify().damping(15);
 
   return (
-    <Animated.View entering={enterAnimation}>
+    <Animated.View entering={enterAnimation} style={styles.wrapper}>
       <AnimatedPressable
         onPress={onPress}
         onPressIn={handlePressIn}
@@ -61,8 +58,8 @@ export default function AdventureCardHorizontal({
 
         {/* Gradient Overlay */}
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.3)", "rgba(0,0,0,0.8)"]}
-          locations={[0, 0.6, 1]}
+          colors={["transparent", "rgba(0,0,0,0.3)", "rgba(0,0,0,0.85)"]}
+          locations={[0, 0.5, 1]}
           style={styles.gradient}
         />
 
@@ -77,14 +74,14 @@ export default function AdventureCardHorizontal({
         <View style={styles.content}>
           <View style={styles.locationRow}>
             <Text style={styles.locationEmoji}>📍</Text>
-            <Text style={styles.location}>{adventure.location}</Text>
+            <Text style={styles.location} numberOfLines={1}>{adventure.location}</Text>
           </View>
           
           <Text style={styles.title} numberOfLines={2}>
             {adventure.title}
           </Text>
           
-          <Text style={styles.dates}>
+          <Text style={styles.dates} numberOfLines={1}>
             {adventure.startDate} - {adventure.endDate}
           </Text>
 
@@ -97,12 +94,12 @@ export default function AdventureCardHorizontal({
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statValue}>{adventure.duration}d</Text>
-              <Text style={styles.statLabel}>duration</Text>
+              <Text style={styles.statLabel}>days</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
               <Text style={styles.statValue}>{adventure.distance}km</Text>
-              <Text style={styles.statLabel}>distance</Text>
+              <Text style={styles.statLabel}>dist</Text>
             </View>
           </View>
 
@@ -122,10 +119,13 @@ export default function AdventureCardHorizontal({
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+  },
   container: {
-    width: CARD_WIDTH,
-    height: 320,
-    borderRadius: 24,
+    flex: 1,
+    height: 280,
+    borderRadius: 20,
     overflow: "hidden",
     backgroundColor: "#1a1a2e",
   },
@@ -139,91 +139,90 @@ const styles = StyleSheet.create({
   },
   favoriteBadge: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    backdropFilter: "blur(10px)",
   },
   favoriteIcon: {
-    fontSize: 16,
+    fontSize: 14,
   },
   content: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
+    padding: 16,
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   locationEmoji: {
-    fontSize: 14,
-    marginRight: 6,
+    fontSize: 12,
+    marginRight: 4,
   },
   location: {
-    fontSize: 14,
+    fontSize: 12,
     color: "rgba(255, 255, 255, 0.8)",
     fontWeight: "500",
+    flex: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 6,
+    marginBottom: 4,
     textShadowColor: "rgba(0, 0, 0, 0.5)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   dates: {
-    fontSize: 13,
+    fontSize: 11,
     color: "rgba(255, 255, 255, 0.7)",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   statsRow: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    backdropFilter: "blur(10px)",
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
   },
   stat: {
     flex: 1,
     alignItems: "center",
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
     color: "#ffffff",
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 9,
     color: "rgba(255, 255, 255, 0.6)",
-    marginTop: 2,
+    marginTop: 1,
   },
   statDivider: {
     width: 1,
-    height: 20,
+    height: 16,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   summary: {
-    fontSize: 13,
+    fontSize: 11,
     color: "rgba(255, 255, 255, 0.7)",
-    lineHeight: 18,
+    lineHeight: 16,
   },
   border: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 24,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.1)",
     pointerEvents: "none",

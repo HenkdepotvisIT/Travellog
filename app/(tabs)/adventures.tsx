@@ -6,8 +6,8 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
-  Dimensions,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { BlurView } from "expo-blur";
@@ -22,9 +22,10 @@ import AdventureCardModern from "../../components/AdventureCardModern";
 import FilterControlsModern from "../../components/FilterControlsModern";
 import { AdventureFilters } from "../../types";
 
-const { width } = Dimensions.get("window");
-
 export default function AdventuresTab() {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 380;
+  
   const [filters, setFilters] = useState<AdventureFilters>({
     dateRange: null,
     country: null,
@@ -44,12 +45,12 @@ export default function AdventuresTab() {
         {/* Header */}
         <Animated.View
           entering={headerAnimation}
-          style={styles.header}
+          style={[styles.header, isSmallScreen && styles.headerCompact]}
         >
           <View style={styles.headerLeft}>
-            <Text style={styles.title}>Adventures</Text>
-            <Text style={styles.subtitle}>
-              {adventures.length} {adventures.length === 1 ? "trip" : "trips"} discovered
+            <Text style={[styles.title, isSmallScreen && styles.titleCompact]}>Adventures</Text>
+            <Text style={[styles.subtitle, isSmallScreen && styles.subtitleCompact]}>
+              {adventures.length} {adventures.length === 1 ? "trip" : "trips"}
             </Text>
           </View>
           <View style={styles.headerRight}>
@@ -99,14 +100,14 @@ export default function AdventuresTab() {
             <Text style={styles.emptyEmoji}>🌍</Text>
             <Text style={styles.emptyTitle}>No adventures found</Text>
             <Text style={styles.emptyText}>
-              Try adjusting your filters or connect to Immich to discover your travels
+              Try adjusting your filters
             </Text>
           </View>
         ) : (
           <ScrollView 
             style={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, isSmallScreen && styles.scrollContentCompact]}
           >
             {viewMode === "grid" ? (
               <View style={styles.gridContainer}>
@@ -137,16 +138,17 @@ export default function AdventuresTab() {
                         >
                           <View style={styles.listItemContent}>
                             <View style={styles.listItemLeft}>
-                              <Text style={styles.listItemTitle}>{adventure.title}</Text>
-                              <Text style={styles.listItemLocation}>📍 {adventure.location}</Text>
-                              <Text style={styles.listItemDates}>
+                              <Text style={[styles.listItemTitle, isSmallScreen && styles.listItemTitleCompact]} numberOfLines={1}>
+                                {adventure.title}
+                              </Text>
+                              <Text style={styles.listItemLocation} numberOfLines={1}>📍 {adventure.location}</Text>
+                              <Text style={styles.listItemDates} numberOfLines={1}>
                                 {adventure.startDate} - {adventure.endDate}
                               </Text>
                             </View>
                             <View style={styles.listItemRight}>
                               <View style={styles.listItemStats}>
-                                <Text style={styles.listItemStat}>{adventure.mediaCount} photos</Text>
-                                <Text style={styles.listItemStat}>{adventure.distance}km</Text>
+                                <Text style={styles.listItemStat}>{adventure.mediaCount} 📸</Text>
                                 <Text style={styles.listItemStat}>{adventure.duration}d</Text>
                               </View>
                               {adventure.isFavorite && (
@@ -162,7 +164,7 @@ export default function AdventuresTab() {
               </View>
             )}
 
-            <View style={{ height: 100 }} />
+            <View style={{ height: 120 }} />
           </ScrollView>
         )}
       </View>
@@ -178,32 +180,43 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 16,
+  },
+  headerCompact: {
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 12,
   },
   headerLeft: {
     flex: 1,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
     color: "#ffffff",
     letterSpacing: -0.5,
   },
+  titleCompact: {
+    fontSize: 24,
+  },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.7)",
-    marginTop: 4,
+    marginTop: 2,
+  },
+  subtitleCompact: {
+    fontSize: 12,
   },
   headerRight: {
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
   },
   viewModeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
@@ -215,32 +228,35 @@ const styles = StyleSheet.create({
     borderColor: "#3b82f6",
   },
   viewModeIcon: {
-    fontSize: 18,
+    fontSize: 16,
     color: "#ffffff",
   },
   scrollContainer: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+  },
+  scrollContentCompact: {
+    paddingHorizontal: 12,
   },
   gridContainer: {
     alignItems: "center",
-    gap: 20,
+    gap: 16,
   },
   listContainer: {
-    gap: 12,
+    gap: 10,
   },
   listItem: {
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
   },
   listItemBlur: {
-    borderRadius: 16,
+    borderRadius: 14,
   },
   listItemGradient: {
-    padding: 16,
-    borderRadius: 16,
+    padding: 14,
+    borderRadius: 14,
   },
   listItemContent: {
     flexDirection: "row",
@@ -250,18 +266,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listItemTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 4,
+    marginBottom: 3,
+  },
+  listItemTitleCompact: {
+    fontSize: 14,
   },
   listItemLocation: {
-    fontSize: 14,
+    fontSize: 12,
     color: "rgba(255, 255, 255, 0.8)",
     marginBottom: 2,
   },
   listItemDates: {
-    fontSize: 12,
+    fontSize: 11,
     color: "rgba(255, 255, 255, 0.6)",
   },
   listItemRight: {
@@ -272,73 +291,72 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   listItemStat: {
-    fontSize: 12,
+    fontSize: 11,
     color: "rgba(255, 255, 255, 0.6)",
     marginBottom: 2,
   },
   favoriteIcon: {
-    fontSize: 16,
+    fontSize: 14,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
+    padding: 32,
   },
   loadingText: {
     color: "rgba(255, 255, 255, 0.7)",
-    marginTop: 16,
-    fontSize: 16,
+    marginTop: 12,
+    fontSize: 14,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
+    padding: 32,
   },
   errorEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 48,
+    marginBottom: 12,
   },
   errorText: {
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
-    marginBottom: 24,
-    fontSize: 16,
-    lineHeight: 24,
+    marginBottom: 16,
+    fontSize: 14,
   },
   retryButton: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
   retryButtonText: {
     color: "#ffffff",
     fontWeight: "600",
+    fontSize: 14,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
+    padding: 32,
   },
   emptyEmoji: {
-    fontSize: 80,
-    marginBottom: 24,
+    fontSize: 60,
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.6)",
     textAlign: "center",
-    lineHeight: 24,
   },
 });

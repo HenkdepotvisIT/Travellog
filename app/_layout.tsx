@@ -11,7 +11,11 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: "transparent" },
           animation: "slide_from_right",
         }}
-      />
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="adventure/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
+      </Stack>
     </>
   );
 }

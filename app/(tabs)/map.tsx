@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   FadeIn,
@@ -15,6 +16,9 @@ import MapViewModern from "../../components/MapViewModern";
 import { router } from "expo-router";
 
 export default function MapTab() {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 380;
+  
   const [filters] = useState({
     dateRange: null as { start: Date; end: Date } | null,
     country: null as string | null,
@@ -37,12 +41,12 @@ export default function MapTab() {
         {/* Header */}
         <Animated.View
           entering={headerAnimation}
-          style={styles.header}
+          style={[styles.header, isSmallScreen && styles.headerCompact]}
         >
           <View style={styles.headerLeft}>
-            <Text style={styles.title}>World Map</Text>
-            <Text style={styles.subtitle}>
-              {adventures.length} adventures across {new Set(adventures.map(a => a.location)).size} countries
+            <Text style={[styles.title, isSmallScreen && styles.titleCompact]}>World Map</Text>
+            <Text style={[styles.subtitle, isSmallScreen && styles.subtitleCompact]}>
+              {adventures.length} adventures • {new Set(adventures.map(a => a.location)).size} countries
             </Text>
           </View>
         </Animated.View>
@@ -56,9 +60,9 @@ export default function MapTab() {
         ) : adventures.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>🌍</Text>
-            <Text style={styles.emptyTitle}>No adventures to map</Text>
+            <Text style={styles.emptyTitle}>No adventures</Text>
             <Text style={styles.emptyText}>
-              Connect to Immich to see your travels on the world map
+              Connect to Immich to see your travels
             </Text>
           </View>
         ) : (
@@ -80,58 +84,68 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 16,
+  },
+  headerCompact: {
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 12,
   },
   headerLeft: {
     flex: 1,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
     color: "#ffffff",
     letterSpacing: -0.5,
   },
+  titleCompact: {
+    fontSize: 24,
+  },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.7)",
-    marginTop: 4,
+    marginTop: 2,
+  },
+  subtitleCompact: {
+    fontSize: 12,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
+    padding: 32,
   },
   loadingEmoji: {
-    fontSize: 80,
-    marginBottom: 16,
+    fontSize: 60,
+    marginBottom: 12,
   },
   loadingText: {
     color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 16,
+    fontSize: 14,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
+    padding: 32,
   },
   emptyEmoji: {
-    fontSize: 80,
-    marginBottom: 24,
+    fontSize: 60,
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.6)",
     textAlign: "center",
-    lineHeight: 24,
   },
 });

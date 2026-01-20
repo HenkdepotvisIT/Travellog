@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Dimensions,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { BlurView } from "expo-blur";
@@ -24,8 +25,6 @@ import { useImmichConnection } from "../../hooks/useImmichConnection";
 import GradientBackground from "../../components/ui/GradientBackground";
 import AdventureCardHorizontal from "../../components/AdventureCardHorizontal";
 import ConnectionModal from "../../components/ConnectionModal";
-
-const { width } = Dimensions.get("window");
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -71,6 +70,7 @@ function StatCard({
   subtitle,
   color = "#3b82f6",
   delay = 0,
+  compact = false,
 }: {
   icon: string;
   value: string | number;
@@ -78,23 +78,24 @@ function StatCard({
   subtitle?: string;
   color?: string;
   delay?: number;
+  compact?: boolean;
 }) {
   return (
     <Animated.View
       entering={FadeIn.delay(delay).duration(300)}
-      style={styles.statCard}
+      style={[styles.statCard, compact && styles.statCardCompact]}
     >
       <BlurView intensity={60} tint="dark" style={styles.statCardBlur}>
         <LinearGradient
           colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0.02)"]}
-          style={styles.statCardGradient}
+          style={[styles.statCardGradient, compact && styles.statCardGradientCompact]}
         >
-          <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
-            <Text style={styles.statIconText}>{icon}</Text>
+          <View style={[styles.statIcon, { backgroundColor: `${color}20` }, compact && styles.statIconCompact]}>
+            <Text style={[styles.statIconText, compact && styles.statIconTextCompact]}>{icon}</Text>
           </View>
-          <Text style={styles.statValue}>{value}</Text>
-          <Text style={styles.statLabel}>{label}</Text>
-          {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
+          <Text style={[styles.statValue, compact && styles.statValueCompact]}>{value}</Text>
+          <Text style={[styles.statLabel, compact && styles.statLabelCompact]}>{label}</Text>
+          {subtitle && !compact && <Text style={styles.statSubtitle}>{subtitle}</Text>}
         </LinearGradient>
       </BlurView>
     </Animated.View>
@@ -108,6 +109,7 @@ function LargeStatCard({
   subtitle,
   color = "#3b82f6",
   delay = 0,
+  compact = false,
 }: {
   icon: string;
   value: string | number;
@@ -115,6 +117,7 @@ function LargeStatCard({
   subtitle?: string;
   color?: string;
   delay?: number;
+  compact?: boolean;
 }) {
   return (
     <Animated.View
@@ -124,16 +127,16 @@ function LargeStatCard({
       <BlurView intensity={60} tint="dark" style={styles.largeStatCardBlur}>
         <LinearGradient
           colors={[`${color}20`, `${color}10`]}
-          style={styles.largeStatCardGradient}
+          style={[styles.largeStatCardGradient, compact && styles.largeStatCardGradientCompact]}
         >
-          <View style={styles.largeStatContent}>
-            <View style={[styles.largeStatIcon, { backgroundColor: `${color}30` }]}>
-              <Text style={styles.largeStatIconText}>{icon}</Text>
+          <View style={[styles.largeStatContent, compact && styles.largeStatContentCompact]}>
+            <View style={[styles.largeStatIcon, { backgroundColor: `${color}30` }, compact && styles.largeStatIconCompact]}>
+              <Text style={[styles.largeStatIconText, compact && styles.largeStatIconTextCompact]}>{icon}</Text>
             </View>
             <View style={styles.largeStatText}>
-              <Text style={styles.largeStatValue}>{value}</Text>
-              <Text style={styles.largeStatLabel}>{label}</Text>
-              {subtitle && <Text style={styles.largeStatSubtitle}>{subtitle}</Text>}
+              <Text style={[styles.largeStatValue, compact && styles.largeStatValueCompact]}>{value}</Text>
+              <Text style={[styles.largeStatLabel, compact && styles.largeStatLabelCompact]}>{label}</Text>
+              {subtitle && <Text style={[styles.largeStatSubtitle, compact && styles.largeStatSubtitleCompact]}>{subtitle}</Text>}
             </View>
           </View>
         </LinearGradient>
@@ -143,6 +146,10 @@ function LargeStatCard({
 }
 
 export default function HomeTab() {
+  const { width, height } = useWindowDimensions();
+  const isSmallScreen = width < 380;
+  const isMediumScreen = width >= 380 && width < 500;
+  
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [filters] = useState({
     dateRange: null as { start: Date; end: Date } | null,
@@ -177,17 +184,20 @@ export default function HomeTab() {
     ? FadeIn.delay(50).duration(200)
     : FadeInDown.delay(100).springify();
 
+  const cardWidth = isSmallScreen ? width * 0.85 : width * 0.8;
+  const statCardWidth = isSmallScreen ? (width - 48) / 2 : (width - 60) / 2;
+
   return (
     <GradientBackground>
       <View style={styles.container}>
         {/* Header */}
         <Animated.View
           entering={headerAnimation}
-          style={styles.header}
+          style={[styles.header, isSmallScreen && styles.headerCompact]}
         >
           <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Good morning</Text>
-            <Text style={styles.title}>Your Adventures</Text>
+            <Text style={[styles.greeting, isSmallScreen && styles.greetingCompact]}>Good morning</Text>
+            <Text style={[styles.title, isSmallScreen && styles.titleCompact]}>Your Adventures</Text>
           </View>
           <View style={styles.headerRight}>
             <HeaderButton
@@ -201,7 +211,7 @@ export default function HomeTab() {
         {/* Connection Status */}
         <Animated.View
           entering={FadeIn.delay(200).duration(300)}
-          style={styles.statusContainer}
+          style={[styles.statusContainer, isSmallScreen && styles.statusContainerCompact]}
         >
           <View style={styles.statusRow}>
             <View
@@ -210,8 +220,8 @@ export default function HomeTab() {
                 isConnected ? styles.statusConnected : styles.statusDisconnected,
               ]}
             />
-            <Text style={styles.statusText}>
-              {isConnected ? `Connected to ${serverUrl?.split('//')[1]?.split('.')[0] || 'Immich'}` : "Not connected to Immich"}
+            <Text style={[styles.statusText, isSmallScreen && styles.statusTextCompact]} numberOfLines={1}>
+              {isConnected ? `Connected to ${serverUrl?.split('//')[1]?.split('.')[0] || 'Immich'}` : "Not connected"}
             </Text>
           </View>
         </Animated.View>
@@ -220,7 +230,7 @@ export default function HomeTab() {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.loadingText}>Loading your adventures...</Text>
+            <Text style={styles.loadingText}>Loading adventures...</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
@@ -255,7 +265,7 @@ export default function HomeTab() {
             showsVerticalScrollIndicator={false}
           >
             {/* Hero Stats */}
-            <View style={styles.heroStatsSection}>
+            <View style={[styles.heroStatsSection, isSmallScreen && styles.heroStatsSectionCompact]}>
               <LargeStatCard
                 icon="🌍"
                 value={stats.totalAdventures}
@@ -263,75 +273,89 @@ export default function HomeTab() {
                 subtitle={`${stats.thisYear} this year`}
                 color="#3b82f6"
                 delay={250}
+                compact={isSmallScreen}
               />
               <LargeStatCard
                 icon="📸"
                 value={stats.totalPhotos.toLocaleString()}
                 label="Photos"
-                subtitle={`${stats.averagePhotosPerTrip} avg per trip`}
+                subtitle={`${stats.averagePhotosPerTrip} avg`}
                 color="#8b5cf6"
                 delay={300}
+                compact={isSmallScreen}
               />
             </View>
 
             {/* Detailed Stats Grid */}
-            <View style={styles.statsGrid}>
-              <StatCard
-                icon="🗺️"
-                value={`${stats.totalDistance.toLocaleString()}km`}
-                label="Distance"
-                subtitle="Total traveled"
-                color="#06b6d4"
-                delay={350}
-              />
-              <StatCard
-                icon="🏳️"
-                value={stats.countries}
-                label="Countries"
-                subtitle="Explored"
-                color="#10b981"
-                delay={400}
-              />
-              <StatCard
-                icon="📅"
-                value={`${stats.totalDays}d`}
-                label="Days"
-                subtitle="On adventures"
-                color="#f59e0b"
-                delay={450}
-              />
-              <StatCard
-                icon="❤️"
-                value={stats.favoriteAdventures}
-                label="Favorites"
-                subtitle="Loved trips"
-                color="#ef4444"
-                delay={500}
-              />
+            <View style={[styles.statsGrid, isSmallScreen && styles.statsGridCompact]}>
+              <View style={[styles.statCardWrapper, { width: statCardWidth }]}>
+                <StatCard
+                  icon="🗺️"
+                  value={`${(stats.totalDistance / 1000).toFixed(1)}k`}
+                  label="Distance"
+                  subtitle="km traveled"
+                  color="#06b6d4"
+                  delay={350}
+                  compact={isSmallScreen}
+                />
+              </View>
+              <View style={[styles.statCardWrapper, { width: statCardWidth }]}>
+                <StatCard
+                  icon="🏳️"
+                  value={stats.countries}
+                  label="Countries"
+                  subtitle="Explored"
+                  color="#10b981"
+                  delay={400}
+                  compact={isSmallScreen}
+                />
+              </View>
+              <View style={[styles.statCardWrapper, { width: statCardWidth }]}>
+                <StatCard
+                  icon="📅"
+                  value={`${stats.totalDays}d`}
+                  label="Days"
+                  subtitle="Traveling"
+                  color="#f59e0b"
+                  delay={450}
+                  compact={isSmallScreen}
+                />
+              </View>
+              <View style={[styles.statCardWrapper, { width: statCardWidth }]}>
+                <StatCard
+                  icon="❤️"
+                  value={stats.favoriteAdventures}
+                  label="Favorites"
+                  subtitle="Loved"
+                  color="#ef4444"
+                  delay={500}
+                  compact={isSmallScreen}
+                />
+              </View>
             </View>
 
             {/* Record Stats */}
             <Animated.View
               entering={FadeIn.delay(550).duration(300)}
-              style={styles.recordsSection}
+              style={[styles.recordsSection, isSmallScreen && styles.recordsSectionCompact]}
             >
-              <Text style={styles.recordsTitle}>🏆 Your Records</Text>
+              <Text style={[styles.recordsTitle, isSmallScreen && styles.recordsTitleCompact]}>🏆 Records</Text>
               <View style={styles.recordsGrid}>
                 <View style={styles.recordCard}>
-                  <Text style={styles.recordValue}>{stats.longestTrip}d</Text>
-                  <Text style={styles.recordLabel}>Longest Trip</Text>
+                  <Text style={[styles.recordValue, isSmallScreen && styles.recordValueCompact]}>{stats.longestTrip}d</Text>
+                  <Text style={[styles.recordLabel, isSmallScreen && styles.recordLabelCompact]}>Longest</Text>
                 </View>
                 <View style={styles.recordCard}>
-                  <Text style={styles.recordValue}>{stats.mostPhotosInTrip}</Text>
-                  <Text style={styles.recordLabel}>Most Photos</Text>
+                  <Text style={[styles.recordValue, isSmallScreen && styles.recordValueCompact]}>{stats.mostPhotosInTrip}</Text>
+                  <Text style={[styles.recordLabel, isSmallScreen && styles.recordLabelCompact]}>Most Photos</Text>
                 </View>
               </View>
             </Animated.View>
 
             {/* Recent Adventures Preview */}
             <View style={styles.adventuresSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Adventures</Text>
+              <View style={[styles.sectionHeader, isSmallScreen && styles.sectionHeaderCompact]}>
+                <Text style={[styles.sectionTitle, isSmallScreen && styles.sectionTitleCompact]}>Recent</Text>
                 <Pressable onPress={() => router.push("/(tabs)/adventures")}>
                   <Text style={styles.seeAllText}>See All →</Text>
                 </Pressable>
@@ -342,21 +366,22 @@ export default function HomeTab() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.adventuresScroll}
                 decelerationRate="fast"
-                snapToInterval={width * 0.8 + 16}
+                snapToInterval={cardWidth + 16}
                 snapToAlignment="start"
               >
                 {adventures.slice(0, 5).map((adventure, index) => (
-                  <AdventureCardHorizontal
-                    key={adventure.id}
-                    adventure={adventure}
-                    onPress={() => router.push(`/adventure/${adventure.id}`)}
-                    index={index}
-                  />
+                  <View key={adventure.id} style={{ width: cardWidth }}>
+                    <AdventureCardHorizontal
+                      adventure={adventure}
+                      onPress={() => router.push(`/adventure/${adventure.id}`)}
+                      index={index}
+                    />
+                  </View>
                 ))}
               </ScrollView>
             </View>
 
-            <View style={{ height: 100 }} />
+            <View style={{ height: 120 }} />
           </ScrollView>
         )}
 
@@ -385,32 +410,43 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 16,
+  },
+  headerCompact: {
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 12,
   },
   headerLeft: {
     flex: 1,
   },
   greeting: {
-    fontSize: 16,
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.7)",
-    marginBottom: 4,
+    marginBottom: 2,
+  },
+  greetingCompact: {
+    fontSize: 12,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
     color: "#ffffff",
     letterSpacing: -0.5,
   },
+  titleCompact: {
+    fontSize: 22,
+  },
   headerRight: {
     flexDirection: "row",
-    gap: 12,
+    gap: 8,
   },
   headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
@@ -418,11 +454,15 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.1)",
   },
   headerButtonText: {
-    fontSize: 20,
+    fontSize: 18,
   },
   statusContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  statusContainerCompact: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   statusRow: {
     flexDirection: "row",
@@ -445,8 +485,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#ef4444",
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "rgba(255, 255, 255, 0.6)",
+    flex: 1,
+  },
+  statusTextCompact: {
+    fontSize: 11,
   },
   loadingContainer: {
     flex: 1,
@@ -457,205 +501,281 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "rgba(255, 255, 255, 0.7)",
     marginTop: 16,
-    fontSize: 16,
+    fontSize: 14,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
+    padding: 32,
   },
   errorEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 48,
+    marginBottom: 12,
   },
   errorText: {
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
-    marginBottom: 24,
-    fontSize: 16,
-    lineHeight: 24,
+    marginBottom: 20,
+    fontSize: 14,
+    lineHeight: 20,
   },
   retryButton: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
   retryButtonText: {
     color: "#ffffff",
     fontWeight: "600",
+    fontSize: 14,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
+    padding: 32,
   },
   emptyEmoji: {
-    fontSize: 80,
-    marginBottom: 24,
+    fontSize: 60,
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.6)",
     textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 32,
+    lineHeight: 20,
+    marginBottom: 24,
   },
   connectButton: {
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: "hidden",
   },
   connectButtonGradient: {
-    paddingHorizontal: 32,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
   },
   connectButtonText: {
     color: "#ffffff",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 14,
   },
   heroStatsSection: {
     flexDirection: "row",
-    paddingHorizontal: 24,
-    gap: 12,
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    gap: 10,
+    marginBottom: 16,
+  },
+  heroStatsSectionCompact: {
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 12,
   },
   largeStatCard: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: "hidden",
   },
   largeStatCardBlur: {
-    borderRadius: 20,
+    borderRadius: 16,
   },
   largeStatCardGradient: {
-    padding: 20,
-    borderRadius: 20,
+    padding: 16,
+    borderRadius: 16,
+  },
+  largeStatCardGradientCompact: {
+    padding: 12,
   },
   largeStatContent: {
     flexDirection: "row",
     alignItems: "center",
   },
+  largeStatContentCompact: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
   largeStatIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 12,
+  },
+  largeStatIconCompact: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 0,
+    marginBottom: 8,
   },
   largeStatIconText: {
-    fontSize: 24,
+    fontSize: 20,
+  },
+  largeStatIconTextCompact: {
+    fontSize: 16,
   },
   largeStatText: {
     flex: 1,
   },
   largeStatValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#ffffff",
     marginBottom: 2,
   },
+  largeStatValueCompact: {
+    fontSize: 20,
+  },
   largeStatLabel: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-    fontWeight: "600",
-  },
-  largeStatSubtitle: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
-    marginTop: 2,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 24,
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCard: {
-    width: (width - 60) / 2,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  statCardBlur: {
-    borderRadius: 16,
-  },
-  statCardGradient: {
-    padding: 16,
-    alignItems: "center",
-    borderRadius: 16,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  statIconText: {
-    fontSize: 20,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#ffffff",
-    marginBottom: 4,
-  },
-  statLabel: {
     fontSize: 13,
     color: "rgba(255, 255, 255, 0.8)",
     fontWeight: "600",
   },
-  statSubtitle: {
+  largeStatLabelCompact: {
+    fontSize: 11,
+  },
+  largeStatSubtitle: {
     fontSize: 11,
     color: "rgba(255, 255, 255, 0.5)",
     marginTop: 2,
   },
-  recordsSection: {
-    paddingHorizontal: 24,
-    marginBottom: 32,
+  largeStatSubtitleCompact: {
+    fontSize: 10,
   },
-  recordsTitle: {
-    fontSize: 20,
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 20,
+    gap: 10,
+    marginBottom: 20,
+  },
+  statsGridCompact: {
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 16,
+  },
+  statCardWrapper: {
+    // Width set dynamically
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  statCardCompact: {
+    borderRadius: 12,
+  },
+  statCardBlur: {
+    borderRadius: 14,
+  },
+  statCardGradient: {
+    padding: 14,
+    alignItems: "center",
+    borderRadius: 14,
+  },
+  statCardGradientCompact: {
+    padding: 10,
+    borderRadius: 12,
+  },
+  statIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  statIconCompact: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginBottom: 6,
+  },
+  statIconText: {
+    fontSize: 18,
+  },
+  statIconTextCompact: {
+    fontSize: 14,
+  },
+  statValue: {
+    fontSize: 18,
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 16,
+    marginBottom: 2,
+  },
+  statValueCompact: {
+    fontSize: 14,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "600",
+  },
+  statLabelCompact: {
+    fontSize: 10,
+  },
+  statSubtitle: {
+    fontSize: 10,
+    color: "rgba(255, 255, 255, 0.5)",
+    marginTop: 2,
+  },
+  recordsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  recordsSectionCompact: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  recordsTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 12,
+  },
+  recordsTitleCompact: {
+    fontSize: 16,
+    marginBottom: 10,
   },
   recordsGrid: {
     flexDirection: "row",
-    gap: 12,
+    gap: 10,
   },
   recordCard: {
     flex: 1,
     backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 14,
+    padding: 16,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.1)",
   },
   recordValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#f59e0b",
     marginBottom: 4,
   },
+  recordValueCompact: {
+    fontSize: 18,
+  },
   recordLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: "rgba(255, 255, 255, 0.6)",
     textAlign: "center",
+  },
+  recordLabelCompact: {
+    fontSize: 10,
   },
   adventuresSection: {
     marginBottom: 20,
@@ -664,22 +784,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  sectionHeaderCompact: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#ffffff",
   },
+  sectionTitleCompact: {
+    fontSize: 16,
+  },
   seeAllText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#3b82f6",
     fontWeight: "600",
   },
   adventuresScroll: {
-    paddingLeft: 24,
-    paddingRight: 24,
+    paddingLeft: 20,
+    paddingRight: 20,
     gap: 16,
   },
 });

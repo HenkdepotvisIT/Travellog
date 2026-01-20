@@ -1,5 +1,13 @@
 import { Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { Platform, View, Text, StyleSheet } from "react-native";
+
+function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
+  return (
+    <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+      <Text style={[styles.icon, focused && styles.iconActive]}>{icon}</Text>
+    </View>
+  );
+}
 
 export default function TabLayout() {
   return (
@@ -10,16 +18,16 @@ export default function TabLayout() {
           backgroundColor: "#0f172a",
           borderTopColor: "rgba(255, 255, 255, 0.1)",
           borderTopWidth: 1,
-          paddingBottom: Platform.OS === "ios" ? 20 : 10,
-          paddingTop: 10,
-          height: Platform.OS === "ios" ? 90 : 70,
+          paddingBottom: Platform.OS === "ios" ? 24 : 8,
+          paddingTop: 8,
+          height: Platform.OS === "ios" ? 88 : 64,
         },
         tabBarActiveTintColor: "#3b82f6",
         tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)",
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: "600",
-          marginTop: 4,
+          marginTop: 2,
         },
       }}
     >
@@ -27,54 +35,49 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon icon="🏠" color={color} size={size} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="adventures"
         options={{
           title: "Adventures",
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon icon="🌍" color={color} size={size} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon icon="🌍" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
           title: "Map",
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon icon="🗺️" color={color} size={size} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon icon="🗺️" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon icon="⚙️" color={color} size={size} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon icon="⚙️" focused={focused} />,
         }}
       />
     </Tabs>
   );
 }
 
-function TabIcon({ icon, color, size }: { icon: string; color: string; size: number }) {
-  return (
-    <div
-      style={{
-        fontSize: size,
-        color: color,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      {icon}
-    </div>
-  );
-}
+const styles = StyleSheet.create({
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iconContainerActive: {
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
+  },
+  icon: {
+    fontSize: 18,
+  },
+  iconActive: {
+    fontSize: 20,
+  },
+});
