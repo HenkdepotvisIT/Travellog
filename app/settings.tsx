@@ -25,18 +25,6 @@ import GlassCard from "../components/ui/GlassCard";
 import AnimatedButton from "../components/ui/AnimatedButton";
 import ProxyHeaderEditor from "../components/ProxyHeaderEditor";
 
-const OPENAI_MODELS = [
-  { id: "gpt-4o-mini", name: "GPT-4o Mini", description: "Fast & affordable" },
-  { id: "gpt-4o", name: "GPT-4o", description: "Most capable" },
-  { id: "gpt-4-turbo", name: "GPT-4 Turbo", description: "High performance" },
-];
-
-const GEMINI_MODELS = [
-  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", description: "Fast & efficient" },
-  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Most capable" },
-  { id: "gemini-1.0-pro", name: "Gemini 1.0 Pro", description: "Balanced" },
-];
-
 export default function SettingsScreen() {
   const { isConnected, serverUrl, apiKey, connect, disconnect, testConnection, reconnectWithHeaders } =
     useImmichConnection();
@@ -49,9 +37,9 @@ export default function SettingsScreen() {
     deleteProxyHeader,
     toggleProxyHeader,
   } = useSettings();
-  const { exportData, importData, clearAllData, isExporting, isImporting } = useDataExport();
+  const { exportData, clearAllData, isExporting } = useDataExport();
   const { syncStatus, syncWithImmich } = useAdventures({ dateRange: null, country: null, minDistance: 0 });
-  const { config: aiConfig, updateConfig: updateAIConfig, isLoading: aiLoading } = useAI();
+  const { config: aiConfig } = useAI();
 
   const [newServerUrl, setNewServerUrl] = useState(serverUrl || "");
   const [newApiKey, setNewApiKey] = useState("");
@@ -59,9 +47,6 @@ export default function SettingsScreen() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
-  
-  // AI Settings state
-  const [isSavingAI, setIsSavingAI] = useState(false);
 
   useEffect(() => {
     if (serverUrl) {
@@ -194,26 +179,6 @@ export default function SettingsScreen() {
     }
   };
 
-  // AI Settings handlers
-  const handleAIProviderChange = async (provider: string) => {
-    setIsSavingAI(true);
-    try {
-      const defaultModel = provider === "gemini" ? "gemini-1.5-flash" : "gpt-4o-mini";
-      await updateAIConfig({ provider, model: defaultModel });
-    } finally {
-      setIsSavingAI(false);
-    }
-  };
-
-  const handleAIModelChange = async (model: string) => {
-    setIsSavingAI(true);
-    try {
-      await updateAIConfig({ model });
-    } finally {
-      setIsSavingAI(false);
-    }
-  };
-
   const SettingsSection = ({ 
     title, 
     icon, 
@@ -281,7 +246,6 @@ export default function SettingsScreen() {
   );
 
   const enabledHeadersCount = (settings.proxyHeaders || []).filter(h => h.enabled && h.key && h.value).length;
-  const aiModels = aiConfig.provider === "gemini" ? GEMINI_MODELS : OPENAI_MODELS;
 
   return (
     <GradientBackground>
@@ -418,131 +382,6 @@ export default function SettingsScreen() {
             </View>
           </SettingsSection>
 
-          {/* AI Configuration */}
-          <SettingsSection 
-            title="AI Configuration" 
-            icon="🤖" 
-            id="ai"
-            badge={aiConfig.isConfigured ? "✓" : undefined}
-          >
-            {aiLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#3b82f6" />
-              </View>
-            ) : (
-              <>
-                {/* Provider Selection */}
-                <Text style={styles.subsectionTitle}>Provider</Text>
-                <View style={styles.providerGrid}>
-                  <Pressable
-                    style={[
-                      styles.providerCard,
-                      aiConfig.provider === "gemini" && styles.providerCardActive,
-                    ]}
-                    onPress={() => handleAIProviderChange("gemini")}
-                  >
-                    <View style={styles.providerHeader}>
-                      <Text style={styles.providerIcon}>✨</Text>
-                      <View
-                        style={[
-                          styles.providerStatusBadge,
-                          aiConfig.availableProviders?.gemini
-                            ? styles.providerStatusConfigured
-                            : styles.providerStatusNotConfigured,
-                        ]}
-                      >
-                        <Text style={styles.providerStatusText}>
-                          {aiConfig.availableProviders?.gemini ? "Ready" : "Not Set"}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.providerName}>Google Gemini</Text>
-                    <Text style={styles.providerDescription}>Free tier available</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={[
-                      styles.providerCard,
-                      aiConfig.provider === "openai" && styles.providerCardActive,
-                    ]}
-                    onPress={() => handleAIProviderChange("openai")}
-                  >
-                    <View style={styles.providerHeader}>
-                      <Text style={styles.providerIcon}>🤖</Text>
-                      <View
-                        style={[
-                          styles.providerStatusBadge,
-                          aiConfig.availableProviders?.openai
-                            ? styles.providerStatusConfigured
-                            : styles.providerStatusNotConfigured,
-                        ]}
-                      >
-                        <Text style={styles.providerStatusText}>
-                          {aiConfig.availableProviders?.openai ? "Ready" : "Not Set"}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.providerName}>OpenAI</Text>
-                    <Text style={styles.providerDescription}>GPT-4o models</Text>
-                  </Pressable>
-                </View>
-
-                {/* Model Selection */}
-                <Text style={styles.subsectionTitle}>Model</Text>
-                <View style={styles.modelList}>
-                  {aiModels.map((model) => (
-                    <Pressable
-                      key={model.id}
-                      style={[
-                        styles.modelCard,
-                        aiConfig.model === model.id && styles.modelCardActive,
-                      ]}
-                      onPress={() => handleAIModelChange(model.id)}
-                    >
-                      <View style={styles.modelInfo}>
-                        <Text style={styles.modelName}>{model.name}</Text>
-                        <Text style={styles.modelDescription}>{model.description}</Text>
-                      </View>
-                      {aiConfig.model === model.id && (
-                        <View style={styles.checkmark}>
-                          <Text style={styles.checkmarkText}>✓</Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  ))}
-                </View>
-
-                {/* Status */}
-                <View style={styles.aiStatusCard}>
-                  <View style={styles.aiStatusRow}>
-                    <Text style={styles.aiStatusLabel}>Status:</Text>
-                    <Text
-                      style={[
-                        styles.aiStatusValue,
-                        aiConfig.isConfigured ? styles.statusGreen : styles.statusRed,
-                      ]}
-                    >
-                      {aiConfig.isConfigured ? "✅ Ready to use" : "❌ Not configured"}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Setup Instructions */}
-                {!aiConfig.isConfigured && (
-                  <View style={styles.infoBox}>
-                    <Text style={styles.infoTitle}>📋 Setup Instructions</Text>
-                    <Text style={styles.infoText}>
-                      {aiConfig.provider === "gemini" 
-                        ? "1. Get a free API key at aistudio.google.com\n2. Set GEMINI_API_KEY in your .env file\n3. Restart the server"
-                        : "1. Get an API key at platform.openai.com\n2. Set OPENAI_API_KEY in your .env file\n3. Restart the server"
-                      }
-                    </Text>
-                  </View>
-                )}
-              </>
-            )}
-          </SettingsSection>
-
           {/* Proxy Headers */}
           <SettingsSection 
             title="Proxy Headers" 
@@ -653,7 +492,7 @@ export default function SettingsScreen() {
 
             <SettingRow
               label="Auto-generate Summaries"
-              description="Create AI summaries for adventures"
+              description="Create AI summaries for new adventures"
             >
               <Switch
                 value={settings.autoGenerateSummaries}
@@ -780,18 +619,24 @@ export default function SettingsScreen() {
                 <View style={styles.aboutLinkRow}>
                   <Text style={styles.aboutLinkLabel}>AI Provider:</Text>
                   <Text style={styles.aboutLinkValue}>
-                    {aiConfig.provider === "gemini" ? "Google Gemini" : "OpenAI"}
+                    {aiConfig.isConfigured ? "Google Gemini ✅" : "Not configured"}
                   </Text>
-                </View>
-                <View style={styles.aboutLinkRow}>
-                  <Text style={styles.aboutLinkLabel}>AI Model:</Text>
-                  <Text style={styles.aboutLinkValue}>{aiConfig.model}</Text>
                 </View>
                 <View style={styles.aboutLinkRow}>
                   <Text style={styles.aboutLinkLabel}>Storage:</Text>
                   <Text style={styles.aboutLinkValue}>PostgreSQL</Text>
                 </View>
               </View>
+
+              {!aiConfig.isConfigured && (
+                <View style={styles.aiHint}>
+                  <Text style={styles.aiHintTitle}>💡 Enable AI Features</Text>
+                  <Text style={styles.aiHintText}>
+                    Set GEMINI_API_KEY in your environment to enable AI-powered summaries and highlights.
+                    Get a free key at aistudio.google.com
+                  </Text>
+                </View>
+              )}
             </View>
           </SettingsSection>
 
@@ -1164,155 +1009,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  loadingContainer: {
-    padding: 40,
-    alignItems: "center",
-  },
-  subsectionTitle: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  providerGrid: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
-  },
-  providerCard: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  providerCardActive: {
-    borderColor: "#3b82f6",
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
-  },
-  providerHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  providerIcon: {
-    fontSize: 28,
-  },
-  providerStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  providerStatusConfigured: {
-    backgroundColor: "rgba(34, 197, 94, 0.2)",
-  },
-  providerStatusNotConfigured: {
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
-  },
-  providerStatusText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  providerName: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  providerDescription: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 12,
-  },
-  infoBox: {
+  aiHint: {
+    width: "100%",
     backgroundColor: "rgba(59, 130, 246, 0.1)",
     borderRadius: 12,
     padding: 16,
+    marginTop: 16,
     borderLeftWidth: 4,
     borderLeftColor: "#3b82f6",
-    marginTop: 16,
   },
-  infoTitle: {
+  aiHintTitle: {
     color: "#ffffff",
     fontSize: 14,
     fontWeight: "600",
     marginBottom: 8,
   },
-  infoText: {
+  aiHintText: {
     color: "rgba(255,255,255,0.7)",
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 20,
-  },
-  modelList: {
-    gap: 8,
-    marginBottom: 16,
-  },
-  modelCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  modelCardActive: {
-    borderColor: "#3b82f6",
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
-  },
-  modelInfo: {
-    flex: 1,
-  },
-  modelName: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  modelDescription: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 12,
-    marginTop: 2,
-  },
-  checkmark: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#3b82f6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkmarkText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  aiStatusCard: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 12,
-    padding: 16,
-  },
-  aiStatusRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  aiStatusLabel: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 14,
-  },
-  aiStatusValue: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  statusGreen: {
-    color: "#22c55e",
-  },
-  statusRed: {
-    color: "#ef4444",
   },
 });
