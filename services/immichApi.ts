@@ -29,11 +29,19 @@ class ImmichApi {
       this.client = axios.create({
         baseURL: `${this.baseUrl}/api`,
         headers: customHeaders,
-        timeout: 30000,
+        timeout: 60000, // Increased timeout for large libraries
       });
     } else {
       this.client = null;
     }
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  getApiKey(): string {
+    return this.apiKey;
   }
 
   updateProxyHeaders(proxyHeaders: ProxyHeader[]) {
@@ -62,80 +70,214 @@ class ImmichApi {
     return response.data;
   }
 
-  async getAllMedia(page: number = 1, pageSize: number = 100): Promise<MediaItem[]> {
+  async getServerStats(): Promise<{ photos: number; videos: number; usage: number }> {
     if (!this.client) throw new Error("Not configured");
 
     try {
-      const response = await this.client.get("/asset", {
-        params: {
-          page,
-          size: pageSize,
-          order: "desc",
-        },
-      });
-
-      return response.data.map((asset: any) => ({
-        id: asset.id,
-        type: asset.type,
-        originalPath: asset.originalPath,
-        thumbnailPath: asset.thumbnailPath,
-        createdAt: asset.fileCreatedAt,
-        modifiedAt: asset.fileModifiedAt,
-        duration: asset.duration,
-        exifInfo: asset.exifInfo
-          ? {
-              latitude: asset.exifInfo.latitude,
-              longitude: asset.exifInfo.longitude,
-              city: asset.exifInfo.city,
-              state: asset.exifInfo.state,
-              country: asset.exifInfo.country,
-              dateTimeOriginal: asset.exifInfo.dateTimeOriginal,
-            }
-          : null,
-      }));
+      const response = await this.client.get("/server-info/statistics");
+      return {
+        photos: response.data?.photos || 0,
+        videos: response.data?.videos || 0,
+        usage: response.data?.usage || 0,
+      };
     } catch (error) {
-      console.error("Failed to fetch media:", error);
-      throw error;
+      console.error("Failed to get server stats:", error);
+      return { photos: 0, videos: 0, usage: 0 };
     }
   }
 
-  async getMediaWithLocation(): Promise<MediaItem[]> {
+  async getAllAssets(onProgress?: (current: number, total: number) => void): Promise<MediaItem[]> {
     if (!this.client) throw new Error("Not configured");
 
     const allMedia: MediaItem[] = [];
     let page = 1;
+    const pageSize = 1000;
+    let hasMore = true;
+    let totalEstimate = 0;
+
+    // Get total count estimate
+    try {
+      const stats = await this.getServerStats();
+      totalEstimate = stats.photos + stats.videos;
+    } catch (e) {
+      // Ignore, we'll just not show progress
+    }
+
+    console.log(`Starting to fetch assets from Immich (estimated: ${totalEstimate})`);
+
+    while (hasMore) {
+      try {
+        // Use the search endpoint for better pagination
+        const response = await this.client.post("/search/metadata", {
+          page,
+          size: pageSize,
+          order: "desc",
+          orderBy: "fileCreatedAt",
+        });
+
+        const assets = response.data?.assets?.items || response.data || [];
+        
+        if (Array.isArray(assets)) {
+          const mediaItems = assets.map((asset: any) => this.mapAssetToMediaItem(asset));
+          allMedia.push(...mediaItems);
+          
+          if (onProgress) {
+            onProgress(allMedia.length, totalEstimate || allMedia.length);
+          }
+
+          console.log(`Fetched page ${page}: ${assets.length} assets (total: ${allMedia.length})`);
+
+          if (assets.length < pageSize) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
+
+        // Safety limit to prevent infinite loops
+        if (page > 500) {
+          console.warn("Reached page limit, stopping fetch");
+          break;
+        }
+      } catch (error: any) {
+        // Try alternative endpoint if search fails
+        if (page === 1) {
+          console.log("Search endpoint failed, trying asset endpoint...");
+          return this.getAllAssetsLegacy(onProgress);
+        }
+        console.error(`Error fetching page ${page}:`, error.message);
+        hasMore = false;
+      }
+    }
+
+    console.log(`Finished fetching ${allMedia.length} total assets`);
+    return allMedia;
+  }
+
+  // Fallback method using the older asset endpoint
+  private async getAllAssetsLegacy(onProgress?: (current: number, total: number) => void): Promise<MediaItem[]> {
+    if (!this.client) throw new Error("Not configured");
+
+    const allMedia: MediaItem[] = [];
+    let page = 1;
+    const pageSize = 500;
     let hasMore = true;
 
     while (hasMore) {
-      const media = await this.getAllMedia(page, 500);
-      const withLocation = media.filter(
-        (m) => m.exifInfo?.latitude && m.exifInfo?.longitude
-      );
-      allMedia.push(...withLocation);
+      try {
+        const response = await this.client.get("/asset", {
+          params: {
+            page,
+            size: pageSize,
+            order: "desc",
+          },
+        });
 
-      if (media.length < 500) {
+        const assets = Array.isArray(response.data) ? response.data : [];
+        const mediaItems = assets.map((asset: any) => this.mapAssetToMediaItem(asset));
+        allMedia.push(...mediaItems);
+
+        if (onProgress) {
+          onProgress(allMedia.length, allMedia.length);
+        }
+
+        console.log(`Fetched page ${page}: ${assets.length} assets (total: ${allMedia.length})`);
+
+        if (assets.length < pageSize) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+
+        if (page > 200) break;
+      } catch (error: any) {
+        console.error(`Error fetching page ${page}:`, error.message);
         hasMore = false;
-      } else {
-        page++;
       }
-
-      // Safety limit
-      if (page > 100) break;
     }
 
     return allMedia;
   }
 
+  private mapAssetToMediaItem(asset: any): MediaItem {
+    return {
+      id: asset.id,
+      type: asset.type === "VIDEO" ? "VIDEO" : "IMAGE",
+      originalPath: asset.originalPath || "",
+      thumbnailPath: asset.thumbnailPath || "",
+      createdAt: asset.fileCreatedAt || asset.createdAt || new Date().toISOString(),
+      modifiedAt: asset.fileModifiedAt || asset.modifiedAt || new Date().toISOString(),
+      duration: asset.duration || undefined,
+      exifInfo: asset.exifInfo
+        ? {
+            latitude: asset.exifInfo.latitude || null,
+            longitude: asset.exifInfo.longitude || null,
+            city: asset.exifInfo.city || null,
+            state: asset.exifInfo.state || null,
+            country: asset.exifInfo.country || null,
+            dateTimeOriginal: asset.exifInfo.dateTimeOriginal || null,
+          }
+        : null,
+    };
+  }
+
+  async getMediaWithLocation(onProgress?: (current: number, total: number) => void): Promise<MediaItem[]> {
+    const allMedia = await this.getAllAssets(onProgress);
+    
+    // Filter to only items with GPS coordinates
+    const withLocation = allMedia.filter(
+      (m) => m.exifInfo?.latitude && m.exifInfo?.longitude &&
+             m.exifInfo.latitude !== 0 && m.exifInfo.longitude !== 0
+    );
+
+    console.log(`Found ${withLocation.length} assets with GPS data out of ${allMedia.length} total`);
+    return withLocation;
+  }
+
+  // Get thumbnail URL - this is a LIVE reference, not a copy
   getThumbnailUrl(assetId: string): string {
+    if (!this.baseUrl || !this.apiKey) return "";
     return `${this.baseUrl}/api/asset/thumbnail/${assetId}?format=WEBP&size=preview`;
   }
 
+  // Get full image URL - this is a LIVE reference, not a copy
   getFullImageUrl(assetId: string): string {
+    if (!this.baseUrl || !this.apiKey) return "";
     return `${this.baseUrl}/api/asset/file/${assetId}`;
+  }
+
+  // Get image URL with API key for direct access
+  getAuthenticatedImageUrl(assetId: string, thumbnail: boolean = true): string {
+    if (!this.baseUrl || !this.apiKey) return "";
+    const endpoint = thumbnail 
+      ? `/api/asset/thumbnail/${assetId}?format=WEBP&size=preview`
+      : `/api/asset/file/${assetId}`;
+    return `${this.baseUrl}${endpoint}`;
+  }
+
+  // Get headers needed for authenticated image requests
+  getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      "x-api-key": this.apiKey,
+    };
+    
+    this.proxyHeaders
+      .filter((h) => h.enabled && h.key && h.value)
+      .forEach((h) => {
+        headers[h.key] = h.value;
+      });
+    
+    return headers;
   }
 
   getProxyHeaders(): ProxyHeader[] {
     return this.proxyHeaders;
+  }
+
+  isConfigured(): boolean {
+    return !!this.client && !!this.baseUrl && !!this.apiKey;
   }
 }
 

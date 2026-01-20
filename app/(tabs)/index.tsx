@@ -6,9 +6,9 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
-  Dimensions,
   Platform,
   useWindowDimensions,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { BlurView } from "expo-blur";
@@ -25,6 +25,7 @@ import { useImmichConnection } from "../../hooks/useImmichConnection";
 import GradientBackground from "../../components/ui/GradientBackground";
 import AdventureCardHorizontal from "../../components/AdventureCardHorizontal";
 import ConnectionModal from "../../components/ConnectionModal";
+import SyncProgressModal from "../../components/SyncProgressModal";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -32,10 +33,12 @@ function HeaderButton({
   icon,
   onPress,
   delay = 0,
+  badge,
 }: {
   icon: string;
   onPress: () => void;
   delay?: number;
+  badge?: string;
 }) {
   const scale = useSharedValue(1);
 
@@ -57,6 +60,11 @@ function HeaderButton({
       >
         <View style={styles.headerButton}>
           <Text style={styles.headerButtonText}>{icon}</Text>
+          {badge && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{badge}</Text>
+            </View>
+          )}
         </View>
       </AnimatedPressable>
     </Animated.View>
@@ -146,9 +154,8 @@ function LargeStatCard({
 }
 
 export default function HomeTab() {
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const isSmallScreen = width < 380;
-  const isMediumScreen = width >= 380 && width < 500;
   
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [filters] = useState({
@@ -158,13 +165,57 @@ export default function HomeTab() {
   });
 
   const { isConnected, serverUrl, connect, disconnect } = useImmichConnection();
-  const { adventures, loading, error, refresh } = useAdventures(filters);
+  const { adventures, loading, error, refresh, syncWithImmich, syncStatus } = useAdventures(filters);
 
+  // Show connection modal on first load if not connected
   useEffect(() => {
+    if (!isConnected && !loading && adventures.length === 0) {
+      // Small delay to let the UI render first
+      const timer = setTimeout(() => setShowConnectionModal(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isConnected, loading, adventures.length]);
+
+  // Handle sync button press
+  const handleSync = async () => {
     if (!isConnected) {
       setShowConnectionModal(true);
+      return;
     }
-  }, [isConnected]);
+
+    const result = await syncWithImmich();
+    
+    if (result.success) {
+      if (result.adventuresCreated > 0 || result.adventuresUpdated > 0) {
+        Alert.alert(
+          "✅ Sync Complete!",
+          `Found ${result.photosWithGps} photos with GPS data.\n\n` +
+          `• ${result.adventuresCreated} new adventures created\n` +
+          `• ${result.adventuresUpdated} adventures updated\n\n` +
+          `Photos are loaded live from Immich - no extra storage used!`,
+          [{ text: "Awesome!" }]
+        );
+      } else if (result.photosWithGps === 0) {
+        Alert.alert(
+          "No GPS Data Found",
+          "None of your photos have GPS location data. Make sure your camera or phone saves location info with photos.",
+          [{ text: "OK" }]
+        );
+      } else {
+        Alert.alert(
+          "Already Up to Date",
+          `Your ${adventures.length} adventures are already synced with Immich.`,
+          [{ text: "OK" }]
+        );
+      }
+    } else {
+      Alert.alert(
+        "Sync Failed",
+        result.error || "Failed to sync with Immich. Please check your connection.",
+        [{ text: "OK" }]
+      );
+    }
+  };
 
   // Calculate statistics
   const stats = {
@@ -177,7 +228,13 @@ export default function HomeTab() {
     longestTrip: adventures.length > 0 ? Math.max(...adventures.map(a => a.duration)) : 0,
     mostPhotosInTrip: adventures.length > 0 ? Math.max(...adventures.map(a => a.mediaCount)) : 0,
     favoriteAdventures: adventures.filter(a => a.isFavorite).length,
-    thisYear: adventures.filter(a => new Date(a.startDate).getFullYear() === new Date().getFullYear()).length,
+    thisYear: adventures.filter(a => {
+      try {
+        return new Date(a.startDate).getFullYear() === new Date().getFullYear();
+      } catch {
+        return false;
+      }
+    }).length,
   };
 
   const headerAnimation = Platform.OS === "web"
@@ -196,14 +253,24 @@ export default function HomeTab() {
           style={[styles.header, isSmallScreen && styles.headerCompact]}
         >
           <View style={styles.headerLeft}>
-            <Text style={[styles.greeting, isSmallScreen && styles.greetingCompact]}>Good morning</Text>
+            <Text style={[styles.greeting, isSmallScreen && styles.greetingCompact]}>
+              {isConnected ? "Connected to Immich" : "Welcome"}
+            </Text>
             <Text style={[styles.title, isSmallScreen && styles.titleCompact]}>Your Adventures</Text>
           </View>
           <View style={styles.headerRight}>
+            {isConnected && (
+              <HeaderButton
+                icon="🔄"
+                onPress={handleSync}
+                delay={100}
+              />
+            )}
             <HeaderButton
-              icon="🔗"
+              icon={isConnected ? "✓" : "🔗"}
               onPress={() => setShowConnectionModal(true)}
               delay={150}
+              badge={isConnected ? undefined : "!"}
             />
           </View>
         </Animated.View>
@@ -213,7 +280,10 @@ export default function HomeTab() {
           entering={FadeIn.delay(200).duration(300)}
           style={[styles.statusContainer, isSmallScreen && styles.statusContainerCompact]}
         >
-          <View style={styles.statusRow}>
+          <Pressable 
+            style={styles.statusRow}
+            onPress={() => isConnected ? handleSync() : setShowConnectionModal(true)}
+          >
             <View
               style={[
                 styles.statusDot,
@@ -221,9 +291,16 @@ export default function HomeTab() {
               ]}
             />
             <Text style={[styles.statusText, isSmallScreen && styles.statusTextCompact]} numberOfLines={1}>
-              {isConnected ? `Connected to ${serverUrl?.split('//')[1]?.split('.')[0] || 'Immich'}` : "Not connected"}
+              {isConnected 
+                ? `${serverUrl?.split('//')[1]?.split('/')[0] || 'Immich'} • Tap to sync`
+                : "Tap to connect to Immich"}
             </Text>
-          </View>
+            {syncStatus.lastSyncTime && (
+              <Text style={styles.lastSyncText}>
+                Last: {new Date(syncStatus.lastSyncTime).toLocaleDateString()}
+              </Text>
+            )}
+          </Pressable>
         </Animated.View>
 
         {/* Main Content */}
@@ -243,21 +320,33 @@ export default function HomeTab() {
         ) : adventures.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>🌍</Text>
-            <Text style={styles.emptyTitle}>No adventures yet</Text>
+            <Text style={styles.emptyTitle}>
+              {isConnected ? "Ready to Sync!" : "No adventures yet"}
+            </Text>
             <Text style={styles.emptyText}>
-              Connect to your Immich server to discover your travel adventures
+              {isConnected 
+                ? "Tap the sync button to discover adventures from your Immich photos. Only photos with GPS data will be used."
+                : "Connect to your Immich server to automatically discover your travel adventures from your photos."}
             </Text>
             <Pressable 
               style={styles.connectButton} 
-              onPress={() => setShowConnectionModal(true)}
+              onPress={() => isConnected ? handleSync() : setShowConnectionModal(true)}
             >
               <LinearGradient
                 colors={["#3b82f6", "#2563eb"]}
                 style={styles.connectButtonGradient}
               >
-                <Text style={styles.connectButtonText}>Connect Now</Text>
+                <Text style={styles.connectButtonText}>
+                  {isConnected ? "🔄 Sync Now" : "🔗 Connect to Immich"}
+                </Text>
               </LinearGradient>
             </Pressable>
+            
+            {isConnected && (
+              <Text style={styles.storageNote}>
+                💡 Photos are loaded directly from Immich - no extra storage used!
+              </Text>
+            )}
           </View>
         ) : (
           <ScrollView 
@@ -394,6 +483,12 @@ export default function HomeTab() {
           isConnected={isConnected}
           currentUrl={serverUrl}
         />
+
+        {/* Sync Progress Modal */}
+        <SyncProgressModal
+          visible={syncStatus.isSyncing}
+          syncStatus={syncStatus}
+        />
       </View>
     </GradientBackground>
   );
@@ -456,6 +551,22 @@ const styles = StyleSheet.create({
   headerButtonText: {
     fontSize: 18,
   },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#ef4444",
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
   statusContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -482,7 +593,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   statusDisconnected: {
-    backgroundColor: "#ef4444",
+    backgroundColor: "#f59e0b",
   },
   statusText: {
     fontSize: 13,
@@ -491,6 +602,10 @@ const styles = StyleSheet.create({
   },
   statusTextCompact: {
     fontSize: 11,
+  },
+  lastSyncText: {
+    fontSize: 11,
+    color: "rgba(255, 255, 255, 0.4)",
   },
   loadingContainer: {
     flex: 1,
@@ -555,6 +670,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 24,
+    paddingHorizontal: 16,
   },
   connectButton: {
     borderRadius: 12,
@@ -562,12 +678,18 @@ const styles = StyleSheet.create({
   },
   connectButtonGradient: {
     paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   connectButtonText: {
     color: "#ffffff",
     fontWeight: "bold",
-    fontSize: 14,
+    fontSize: 15,
+  },
+  storageNote: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.5)",
+    textAlign: "center",
+    marginTop: 16,
   },
   heroStatsSection: {
     flexDirection: "row",

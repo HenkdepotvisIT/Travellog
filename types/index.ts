@@ -22,7 +22,7 @@ export interface Adventure {
   coordinates: Coordinates;
   route: Coordinates[];
   stopPoints: StopPoint[];
-  photos: string[];
+  photos: string[]; // Live URLs to Immich thumbnails
   narrative: string;
   aiSummary: string;
   highlights: string[];
@@ -30,6 +30,9 @@ export interface Adventure {
   isHidden?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  // Internal: Store photo IDs for regenerating URLs
+  _photoIds?: string[];
+  _coverPhotoId?: string;
 }
 
 export interface MediaItem {
@@ -41,12 +44,12 @@ export interface MediaItem {
   modifiedAt: string;
   duration?: string;
   exifInfo: {
-    latitude?: number;
-    longitude?: number;
-    city?: string;
-    state?: string;
-    country?: string;
-    dateTimeOriginal?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
+    dateTimeOriginal?: string | null;
   } | null;
 }
 
@@ -86,5 +89,20 @@ export interface AppSettings {
 export interface SyncStatus {
   lastSyncTime: Date | null;
   isSyncing: boolean;
+  syncProgress?: {
+    phase: "fetching" | "clustering" | "saving" | "done";
+    current: number;
+    total: number;
+    message: string;
+  };
   error: string | null;
+}
+
+export interface SyncResult {
+  success: boolean;
+  adventuresCreated: number;
+  adventuresUpdated: number;
+  photosProcessed: number;
+  photosWithGps: number;
+  error?: string;
 }
