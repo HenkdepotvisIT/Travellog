@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Platform, View, Text, StyleSheet } from "react-native";
+import { Platform, View, Text, StyleSheet, useWindowDimensions } from "react-native";
 
 function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
   return (
@@ -10,6 +10,9 @@ function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
 }
 
 export default function TabLayout() {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 380;
+
   return (
     <Tabs
       screenOptions={{
@@ -18,16 +21,20 @@ export default function TabLayout() {
           backgroundColor: "#0f172a",
           borderTopColor: "rgba(255, 255, 255, 0.1)",
           borderTopWidth: 1,
-          paddingBottom: Platform.OS === "ios" ? 24 : 8,
-          paddingTop: 8,
-          height: Platform.OS === "ios" ? 88 : 64,
+          paddingBottom: Platform.OS === "ios" ? (isSmallScreen ? 20 : 24) : (isSmallScreen ? 4 : 8),
+          paddingTop: isSmallScreen ? 4 : 8,
+          height: Platform.OS === "ios" ? (isSmallScreen ? 80 : 88) : (isSmallScreen ? 56 : 64),
+          paddingHorizontal: isSmallScreen ? 8 : 16,
         },
         tabBarActiveTintColor: "#3b82f6",
         tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)",
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: isSmallScreen ? 10 : 11,
           fontWeight: "600",
-          marginTop: 2,
+          marginTop: isSmallScreen ? 1 : 2,
+        },
+        tabBarItemStyle: {
+          paddingHorizontal: isSmallScreen ? 2 : 4,
         },
       }}
     >
@@ -41,7 +48,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="adventures"
         options={{
-          title: "Adventures",
+          title: isSmallScreen ? "Trips" : "Adventures",
           tabBarIcon: ({ focused }) => <TabIcon icon="🌍" focused={focused} />,
         }}
       />
@@ -55,7 +62,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: isSmallScreen ? "Config" : "Settings",
           tabBarIcon: ({ focused }) => <TabIcon icon="⚙️" focused={focused} />,
         }}
       />
@@ -65,9 +72,9 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -75,9 +82,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(59, 130, 246, 0.2)",
   },
   icon: {
-    fontSize: 18,
+    fontSize: 16,
   },
   iconActive: {
-    fontSize: 20,
+    fontSize: 18,
   },
 });
