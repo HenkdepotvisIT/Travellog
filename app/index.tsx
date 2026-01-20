@@ -64,6 +64,84 @@ function HeaderButton({
   );
 }
 
+function StatCard({
+  icon,
+  value,
+  label,
+  subtitle,
+  color = "#3b82f6",
+  delay = 0,
+}: {
+  icon: string;
+  value: string | number;
+  label: string;
+  subtitle?: string;
+  color?: string;
+  delay?: number;
+}) {
+  return (
+    <Animated.View
+      entering={FadeIn.delay(delay).duration(300)}
+      style={styles.statCard}
+    >
+      <BlurView intensity={60} tint="dark" style={styles.statCardBlur}>
+        <LinearGradient
+          colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0.02)"]}
+          style={styles.statCardGradient}
+        >
+          <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
+            <Text style={styles.statIconText}>{icon}</Text>
+          </View>
+          <Text style={styles.statValue}>{value}</Text>
+          <Text style={styles.statLabel}>{label}</Text>
+          {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
+        </LinearGradient>
+      </BlurView>
+    </Animated.View>
+  );
+}
+
+function LargeStatCard({
+  icon,
+  value,
+  label,
+  subtitle,
+  color = "#3b82f6",
+  delay = 0,
+}: {
+  icon: string;
+  value: string | number;
+  label: string;
+  subtitle?: string;
+  color?: string;
+  delay?: number;
+}) {
+  return (
+    <Animated.View
+      entering={FadeIn.delay(delay).duration(300)}
+      style={styles.largeStatCard}
+    >
+      <BlurView intensity={60} tint="dark" style={styles.largeStatCardBlur}>
+        <LinearGradient
+          colors={[`${color}20`, `${color}10`]}
+          style={styles.largeStatCardGradient}
+        >
+          <View style={styles.largeStatContent}>
+            <View style={[styles.largeStatIcon, { backgroundColor: `${color}30` }]}>
+              <Text style={styles.largeStatIconText}>{icon}</Text>
+            </View>
+            <View style={styles.largeStatText}>
+              <Text style={styles.largeStatValue}>{value}</Text>
+              <Text style={styles.largeStatLabel}>{label}</Text>
+              {subtitle && <Text style={styles.largeStatSubtitle}>{subtitle}</Text>}
+            </View>
+          </View>
+        </LinearGradient>
+      </BlurView>
+    </Animated.View>
+  );
+}
+
 export default function HomeScreen() {
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [filters] = useState({
@@ -80,6 +158,20 @@ export default function HomeScreen() {
       setShowConnectionModal(true);
     }
   }, [isConnected]);
+
+  // Calculate statistics
+  const stats = {
+    totalAdventures: adventures.length,
+    totalPhotos: adventures.reduce((sum, a) => sum + a.mediaCount, 0),
+    totalDistance: adventures.reduce((sum, a) => sum + a.distance, 0),
+    totalDays: adventures.reduce((sum, a) => sum + a.duration, 0),
+    countries: new Set(adventures.map(a => a.location)).size,
+    averagePhotosPerTrip: adventures.length > 0 ? Math.round(adventures.reduce((sum, a) => sum + a.mediaCount, 0) / adventures.length) : 0,
+    longestTrip: adventures.length > 0 ? Math.max(...adventures.map(a => a.duration)) : 0,
+    mostPhotosInTrip: adventures.length > 0 ? Math.max(...adventures.map(a => a.mediaCount)) : 0,
+    favoriteAdventures: adventures.filter(a => a.isFavorite).length,
+    thisYear: adventures.filter(a => new Date(a.startDate).getFullYear() === new Date().getFullYear()).length,
+  };
 
   const headerAnimation = Platform.OS === "web"
     ? FadeIn.delay(50).duration(200)
@@ -163,7 +255,84 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         ) : (
-          <>
+          <ScrollView 
+            style={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Hero Stats */}
+            <View style={styles.heroStatsSection}>
+              <LargeStatCard
+                icon="🌍"
+                value={stats.totalAdventures}
+                label="Adventures"
+                subtitle={`${stats.thisYear} this year`}
+                color="#3b82f6"
+                delay={250}
+              />
+              <LargeStatCard
+                icon="📸"
+                value={stats.totalPhotos.toLocaleString()}
+                label="Photos"
+                subtitle={`${stats.averagePhotosPerTrip} avg per trip`}
+                color="#8b5cf6"
+                delay={300}
+              />
+            </View>
+
+            {/* Detailed Stats Grid */}
+            <View style={styles.statsGrid}>
+              <StatCard
+                icon="🗺️"
+                value={`${stats.totalDistance.toLocaleString()}km`}
+                label="Distance"
+                subtitle="Total traveled"
+                color="#06b6d4"
+                delay={350}
+              />
+              <StatCard
+                icon="🏳️"
+                value={stats.countries}
+                label="Countries"
+                subtitle="Explored"
+                color="#10b981"
+                delay={400}
+              />
+              <StatCard
+                icon="📅"
+                value={`${stats.totalDays}d`}
+                label="Days"
+                subtitle="On adventures"
+                color="#f59e0b"
+                delay={450}
+              />
+              <StatCard
+                icon="❤️"
+                value={stats.favoriteAdventures}
+                label="Favorites"
+                subtitle="Loved trips"
+                color="#ef4444"
+                delay={500}
+              />
+            </View>
+
+            {/* Record Stats */}
+            <Animated.View
+              entering={FadeIn.delay(550).duration(300)}
+              style={styles.recordsSection}
+            >
+              <Text style={styles.recordsTitle}>🏆 Your Records</Text>
+              <View style={styles.recordsGrid}>
+                <View style={styles.recordCard}>
+                  <Text style={styles.recordValue}>{stats.longestTrip}d</Text>
+                  <Text style={styles.recordLabel}>Longest Trip</Text>
+                </View>
+                <View style={styles.recordCard}>
+                  <Text style={styles.recordValue}>{stats.mostPhotosInTrip}</Text>
+                  <Text style={styles.recordLabel}>Most Photos</Text>
+                </View>
+              </View>
+            </Animated.View>
+
             {/* Adventures Section */}
             <View style={styles.adventuresSection}>
               <View style={styles.sectionHeader}>
@@ -190,33 +359,8 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
 
-            {/* Quick Stats */}
-            <Animated.View
-              entering={FadeIn.delay(400).duration(300)}
-              style={styles.statsSection}
-            >
-              <View style={styles.statsGrid}>
-                <View style={styles.statCard}>
-                  <Text style={styles.statNumber}>
-                    {adventures.reduce((sum, a) => sum + a.mediaCount, 0)}
-                  </Text>
-                  <Text style={styles.statLabel}>Photos</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statNumber}>
-                    {adventures.reduce((sum, a) => sum + a.distance, 0).toLocaleString()}km
-                  </Text>
-                  <Text style={styles.statLabel}>Traveled</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statNumber}>
-                    {new Set(adventures.map(a => a.location)).size}
-                  </Text>
-                  <Text style={styles.statLabel}>Countries</Text>
-                </View>
-              </View>
-            </Animated.View>
-          </>
+            <View style={{ height: 100 }} />
+          </ScrollView>
         )}
 
         {/* Connection Modal */}
@@ -235,6 +379,9 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollContainer: {
     flex: 1,
   },
   header: {
@@ -380,8 +527,141 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  adventuresSection: {
+  heroStatsSection: {
+    flexDirection: "row",
+    paddingHorizontal: 24,
+    gap: 12,
+    marginBottom: 20,
+  },
+  largeStatCard: {
     flex: 1,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  largeStatCardBlur: {
+    borderRadius: 20,
+  },
+  largeStatCardGradient: {
+    padding: 20,
+    borderRadius: 20,
+  },
+  largeStatContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  largeStatIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  largeStatIconText: {
+    fontSize: 24,
+  },
+  largeStatText: {
+    flex: 1,
+  },
+  largeStatValue: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 2,
+  },
+  largeStatLabel: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "600",
+  },
+  largeStatSubtitle: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.5)",
+    marginTop: 2,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 24,
+    gap: 12,
+    marginBottom: 24,
+  },
+  statCard: {
+    width: (width - 60) / 2,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  statCardBlur: {
+    borderRadius: 16,
+  },
+  statCardGradient: {
+    padding: 16,
+    alignItems: "center",
+    borderRadius: 16,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  statIconText: {
+    fontSize: 20,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "600",
+  },
+  statSubtitle: {
+    fontSize: 11,
+    color: "rgba(255, 255, 255, 0.5)",
+    marginTop: 2,
+  },
+  recordsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 32,
+  },
+  recordsTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 16,
+  },
+  recordsGrid: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  recordCard: {
+    flex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  recordValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#f59e0b",
+    marginBottom: 4,
+  },
+  recordLabel: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.6)",
+    textAlign: "center",
+  },
+  adventuresSection: {
+    marginBottom: 20,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -403,34 +683,5 @@ const styles = StyleSheet.create({
     paddingLeft: 24,
     paddingRight: 24,
     gap: 16,
-  },
-  statsSection: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 16,
-    padding: 16,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#ffffff",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.6)",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
 });
