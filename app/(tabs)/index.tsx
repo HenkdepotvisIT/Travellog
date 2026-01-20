@@ -93,9 +93,9 @@ function StatCard({
       entering={FadeIn.delay(delay).duration(300)}
       style={[styles.statCard, compact && styles.statCardCompact]}
     >
-      <BlurView intensity={60} tint="dark" style={styles.statCardBlur}>
+      <BlurView intensity={60} tint="light" style={styles.statCardBlur}>
         <LinearGradient
-          colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0.02)"]}
+          colors={["rgba(255,255,255,0.9)", "rgba(255,255,255,0.7)"]}
           style={[styles.statCardGradient, compact && styles.statCardGradientCompact]}
         >
           <View style={[styles.statIcon, { backgroundColor: `${color}20` }, compact && styles.statIconCompact]}>
@@ -132,9 +132,9 @@ function LargeStatCard({
       entering={FadeIn.delay(delay).duration(300)}
       style={styles.largeStatCard}
     >
-      <BlurView intensity={60} tint="dark" style={styles.largeStatCardBlur}>
+      <BlurView intensity={60} tint="light" style={styles.largeStatCardBlur}>
         <LinearGradient
-          colors={[`${color}20`, `${color}10`]}
+          colors={["rgba(255,255,255,0.9)", "rgba(255,255,255,0.7)"]}
           style={[styles.largeStatCardGradient, compact && styles.largeStatCardGradientCompact]}
         >
           <View style={[styles.largeStatContent, compact && styles.largeStatContentCompact]}>
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.7)",
+    color: "#64748b",
     marginBottom: 2,
   },
   greetingCompact: {
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#1e293b",
     letterSpacing: -0.5,
   },
   titleCompact: {
@@ -542,11 +542,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "rgba(0, 0, 0, 0.1)",
   },
   headerButtonText: {
     fontSize: 18,
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 13,
-    color: "rgba(255, 255, 255, 0.6)",
+    color: "#475569",
     flex: 1,
   },
   statusTextCompact: {
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
   },
   lastSyncText: {
     fontSize: 11,
-    color: "rgba(255, 255, 255, 0.4)",
+    color: "#94a3b8",
   },
   loadingContainer: {
     flex: 1,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   loadingText: {
-    color: "rgba(255, 255, 255, 0.7)",
+    color: "#64748b",
     marginTop: 16,
     fontSize: 14,
   },
@@ -629,22 +629,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   errorText: {
-    color: "rgba(255, 255, 255, 0.7)",
+    color: "#64748b",
     textAlign: "center",
     marginBottom: 20,
     fontSize: 14,
     lineHeight: 20,
   },
   retryButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderColor: "rgba(0, 0, 0, 0.1)",
   },
   retryButtonText: {
-    color: "#ffffff",
+    color: "#1e293b",
     fontWeight: "600",
     fontSize: 14,
   },
@@ -661,12 +661,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#1e293b",
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.6)",
+    color: "#64748b",
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 24,
@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
   },
   storageNote: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
+    color: "#94a3b8",
     textAlign: "center",
     marginTop: 16,
   },
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   largeStatValue: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#1e293b",
     marginBottom: 2,
   },
   largeStatValueCompact: {
@@ -760,7 +760,7 @@ const styles = StyleSheet.create({
   },
   largeStatLabel: {
     fontSize: 13,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "#475569",
     fontWeight: "600",
   },
   largeStatLabelCompact: {
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   },
   largeStatSubtitle: {
     fontSize: 11,
-    color: "rgba(255, 255, 255, 0.5)",
+    color: "#94a3b8",
     marginTop: 2,
   },
   largeStatSubtitleCompact: {
@@ -832,7 +832,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#1e293b",
     marginBottom: 2,
   },
   statValueCompact: {
@@ -840,7 +840,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "#475569",
     fontWeight: "600",
   },
   statLabelCompact: {
@@ -848,7 +848,7 @@ const styles = StyleSheet.create({
   },
   statSubtitle: {
     fontSize: 10,
-    color: "rgba(255, 255, 255, 0.5)",
+    color: "#94a3b8",
     marginTop: 2,
   },
   recordsSection: {
@@ -862,7 +862,7 @@ const styles = StyleSheet.create({
   recordsTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#1e293b",
     marginBottom: 12,
   },
   recordsTitleCompact: {
@@ -875,12 +875,12 @@ const styles = StyleSheet.create({
   },
   recordCard: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
     borderRadius: 14,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "rgba(0, 0, 0, 0.05)",
   },
   recordValue: {
     fontSize: 22,
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
   },
   recordLabel: {
     fontSize: 11,
-    color: "rgba(255, 255, 255, 0.6)",
+    color: "#64748b",
     textAlign: "center",
   },
   recordLabelCompact: {
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: "#1e293b",
   },
   sectionTitleCompact: {
     fontSize: 16,
