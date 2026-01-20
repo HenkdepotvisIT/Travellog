@@ -3,14 +3,12 @@ import { Coordinates, StopPoint } from "../types";
 
 const { width } = Dimensions.get("window");
 
-// Conditionally import MapLibre only on native platforms
+// Conditionally import MapLibre
 let MapLibreGL: any = null;
-if (Platform.OS !== "web") {
-  try {
-    MapLibreGL = require("@maplibre/maplibre-react-native").default;
-  } catch (e) {
-    console.log("MapLibre not available");
-  }
+try {
+  MapLibreGL = require("@maplibre/maplibre-react-native").default;
+} catch (e) {
+  console.log("MapLibre not available");
 }
 
 interface AdventureMapProps {
@@ -20,8 +18,20 @@ interface AdventureMapProps {
 
 // Web fallback component
 function WebMapFallback({ route, stops }: AdventureMapProps) {
-  const lats = route.map((r) => r.lat);
-  const lngs = route.map((r) => r.lng);
+  if (route.length === 0 && stops.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyMap}>
+          <Text style={styles.emptyMapText}>🗺️</Text>
+          <Text style={styles.emptyMapSubtext}>No route data available</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const allPoints = [...route, ...stops];
+  const lats = allPoints.map((p) => p.lat);
+  const lngs = allPoints.map((p) => p.lng);
   const minLat = Math.min(...lats);
   const maxLat = Math.max(...lats);
   const minLng = Math.min(...lngs);
@@ -41,6 +51,7 @@ function WebMapFallback({ route, stops }: AdventureMapProps) {
       <View style={[styles.mapContainer, { width: mapWidth, height: mapHeight }]}>
         <View style={styles.mapBackground} />
 
+        {/* Route line */}
         {route.length > 1 && (
           <View style={styles.routeContainer}>
             {route.slice(0, -1).map((point, index) => {
@@ -69,6 +80,7 @@ function WebMapFallback({ route, stops }: AdventureMapProps) {
           </View>
         )}
 
+        {/* Stop markers */}
         {stops.map((stop, index) => {
           const pos = getPosition(stop.lat, stop.lng);
           return (
@@ -101,13 +113,14 @@ function WebMapFallback({ route, stops }: AdventureMapProps) {
 
 // Native MapLibre component
 function NativeMapView({ route, stops }: AdventureMapProps) {
-  if (!MapLibreGL || route.length === 0) {
+  if (!MapLibreGL || (route.length === 0 && stops.length === 0)) {
     return <WebMapFallback route={route} stops={stops} />;
   }
 
   // Calculate bounds
-  const lngs = route.map((r) => r.lng);
-  const lats = route.map((r) => r.lat);
+  const allPoints = [...route, ...stops];
+  const lngs = allPoints.map((p) => p.lng);
+  const lats = allPoints.map((p) => p.lat);
   const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
   const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
 
@@ -115,7 +128,12 @@ function NativeMapView({ route, stops }: AdventureMapProps) {
   const lngSpread = Math.max(...lngs) - Math.min(...lngs);
   const latSpread = Math.max(...lats) - Math.min(...lats);
   const maxSpread = Math.max(lngSpread, latSpread);
-  const zoomLevel = maxSpread > 10 ? 4 : maxSpread > 5 ? 5 : maxSpread > 2 ? 6 : 8;
+  
+  let zoomLevel = 10;
+  if (maxSpread > 10) zoomLevel = 4;
+  else if (maxSpread > 5) zoomLevel = 5;
+  else if (maxSpread > 2) zoomLevel = 6;
+  else if (maxSpread > 1) zoomLevel = 8;
 
   const routeCoordinates = route.map((point) => [point.lng, point.lat]);
 
@@ -189,6 +207,8 @@ function NativeMapView({ route, stops }: AdventureMapProps) {
 
 // Shared stops list component
 function StopsList({ stops }: { stops: StopPoint[] }) {
+  if (stops.length === 0) return null;
+
   return (
     <View style={styles.stopsList}>
       <Text style={styles.stopsTitle}>📍 Stops</Text>
@@ -225,6 +245,25 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
   },
+  mapBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#1e3a5f",
+  },
+  emptyMap: {
+    height: 300,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#1e3a5f",
+    borderRadius: 16,
+  },
+  emptyMapText: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  emptyMapSubtext: {
+    color: "rgba(255, 255, 255, 0.6)",
+    fontSize: 14,
+  },
   nativeMapContainer: {
     height: 300,
     borderRadius: 16,
@@ -232,10 +271,6 @@ const styles = StyleSheet.create({
   },
   nativeMap: {
     flex: 1,
-  },
-  mapBackground: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#1e3a5f",
   },
   routeContainer: {
     ...StyleSheet.absoluteFillObject,
