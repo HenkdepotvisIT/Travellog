@@ -29,7 +29,7 @@ export function useDataExport() {
       } else {
         // Native: Share or save to file
         const fileName = `travel-log-backup-${new Date().toISOString().split("T")[0]}.json`;
-        const filePath = `${FileSystem.documentDirectory}${fileName}`;
+        const filePath = `${FileSystem.documentDirectory!}${fileName}`;
         
         await FileSystem.writeAsStringAsync(filePath, jsonData);
         

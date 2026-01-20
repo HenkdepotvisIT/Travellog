@@ -47,7 +47,7 @@ export default function SyncProgressModal({
     }
   };
 
-  const progress = syncProgress?.total 
+  const progress = syncProgress?.total && syncProgress.total > 0
     ? Math.round((syncProgress.current / syncProgress.total) * 100)
     : 0;
 
@@ -89,7 +89,7 @@ export default function SyncProgressModal({
               </Text>
 
               {/* Progress Bar */}
-              {syncProgress?.total > 0 && syncProgress.phase !== "done" && (
+              {syncProgress && syncProgress.total > 0 && syncProgress.phase !== "done" && (
                 <View style={styles.progressContainer}>
                   <View style={styles.progressBar}>
                     <LinearGradient

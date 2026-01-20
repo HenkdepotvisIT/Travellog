@@ -40,7 +40,7 @@ function FloatingParticle({
       translateY.value = withRepeat(
         withTiming(-40, { 
           duration: duration + Math.random() * 2000, 
-          easing: Easing.inOut(Easing.sine) 
+          easing: Easing.inOut(Easing.sin) 
         }),
         -1,
         true
@@ -49,7 +49,7 @@ function FloatingParticle({
       translateX.value = withRepeat(
         withTiming(25, { 
           duration: duration * 1.5, 
-          easing: Easing.inOut(Easing.sine) 
+          easing: Easing.inOut(Easing.sin) 
         }),
         -1,
         true
@@ -133,13 +133,13 @@ function MovingOrb({
       );
 
       translateX.value = withRepeat(
-        withTiming(40, { duration: 10000, easing: Easing.inOut(Easing.sine) }),
+        withTiming(40, { duration: 10000, easing: Easing.inOut(Easing.sin) }),
         -1,
         true
       );
 
       translateY.value = withRepeat(
-        withTiming(25, { duration: 15000, easing: Easing.inOut(Easing.sine) }),
+        withTiming(25, { duration: 15000, easing: Easing.inOut(Easing.sin) }),
         -1,
         true
       );
