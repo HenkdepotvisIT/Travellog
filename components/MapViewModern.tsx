@@ -7,7 +7,6 @@ import Animated, {
   FadeInUp,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withRepeat,
   withTiming,
   Easing,
@@ -22,27 +21,34 @@ interface MapViewModernProps {
   onAdventurePress: (id: string) => void;
 }
 
-function PulsingDot({ delay = 0 }: { delay?: number }) {
+function PulsingDot() {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(0.6);
 
   useEffect(() => {
-    scale.value = withRepeat(
-      withTiming(1.5, { duration: 2000, easing: Easing.out(Easing.ease) }),
-      -1,
-      true
-    );
-    opacity.value = withRepeat(
-      withTiming(0, { duration: 2000, easing: Easing.out(Easing.ease) }),
-      -1,
-      true
-    );
+    if (Platform.OS !== "web") {
+      scale.value = withRepeat(
+        withTiming(1.5, { duration: 2000, easing: Easing.out(Easing.ease) }),
+        -1,
+        true
+      );
+      opacity.value = withRepeat(
+        withTiming(0, { duration: 2000, easing: Easing.out(Easing.ease) }),
+        -1,
+        true
+      );
+    }
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    if (Platform.OS === "web") {
+      return { opacity: 0.3 };
+    }
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
 
   return (
     <Animated.View style={[styles.pulsingRing, animatedStyle]} />
@@ -53,6 +59,15 @@ export default function MapViewModern({
   adventures,
   onAdventurePress,
 }: MapViewModernProps) {
+  // Use simpler animations on web
+  const legendAnimation = Platform.OS === "web" 
+    ? FadeIn.delay(300).duration(300)
+    : FadeInUp.delay(500).springify();
+  
+  const listAnimation = Platform.OS === "web"
+    ? FadeIn.delay(400).duration(300)
+    : FadeInUp.delay(600).springify();
+
   return (
     <View style={styles.container}>
       {/* Map Background */}
@@ -78,7 +93,7 @@ export default function MapViewModern({
 
         {/* Globe Emoji as placeholder */}
         <Animated.Text
-          entering={FadeIn.delay(200).duration(1000)}
+          entering={FadeIn.delay(200).duration(500)}
           style={styles.globeEmoji}
         >
           🌍
@@ -89,10 +104,14 @@ export default function MapViewModern({
           const x = ((adventure.coordinates.lng + 180) / 360) * (width - 80) + 20;
           const y = ((90 - adventure.coordinates.lat) / 180) * (height * 0.45) + 20;
 
+          const pinAnimation = Platform.OS === "web"
+            ? FadeIn.delay(200 + index * 50).duration(300)
+            : FadeInDown.delay(300 + index * 100).springify();
+
           return (
             <Animated.View
               key={adventure.id}
-              entering={FadeInDown.delay(300 + index * 100).springify()}
+              entering={pinAnimation}
               style={[
                 styles.pinContainer,
                 {
@@ -119,7 +138,7 @@ export default function MapViewModern({
 
       {/* Legend Card */}
       <Animated.View
-        entering={FadeInUp.delay(500).springify()}
+        entering={legendAnimation}
         style={styles.legendContainer}
       >
         <BlurView intensity={80} tint="dark" style={styles.legendBlur}>
@@ -137,7 +156,7 @@ export default function MapViewModern({
 
       {/* Adventure List Overlay */}
       <Animated.View
-        entering={FadeInUp.delay(600).springify()}
+        entering={listAnimation}
         style={styles.listContainer}
       >
         <BlurView intensity={80} tint="dark" style={styles.listBlur}>

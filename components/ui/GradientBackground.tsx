@@ -1,4 +1,4 @@
-import { View, StyleSheet, Dimensions } from "react-native";
+import { View, StyleSheet, Dimensions, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useAnimatedStyle,
@@ -20,24 +20,32 @@ export default function GradientBackground({ children }: GradientBackgroundProps
   const scale = useSharedValue(1);
 
   useEffect(() => {
-    rotation.value = withRepeat(
-      withTiming(360, { duration: 20000, easing: Easing.linear }),
-      -1,
-      false
-    );
-    scale.value = withRepeat(
-      withTiming(1.2, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
+    // Only run animations on native to avoid web issues
+    if (Platform.OS !== "web") {
+      rotation.value = withRepeat(
+        withTiming(360, { duration: 20000, easing: Easing.linear }),
+        -1,
+        false
+      );
+      scale.value = withRepeat(
+        withTiming(1.2, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+    }
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { rotate: `${rotation.value}deg` },
-      { scale: scale.value },
-    ],
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    if (Platform.OS === "web") {
+      return {};
+    }
+    return {
+      transform: [
+        { rotate: `${rotation.value}deg` },
+        { scale: scale.value },
+      ],
+    };
+  });
 
   return (
     <View style={styles.container}>
@@ -47,12 +55,20 @@ export default function GradientBackground({ children }: GradientBackgroundProps
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Animated orbs */}
-      <Animated.View style={[styles.orbContainer, animatedStyle]}>
-        <View style={[styles.orb, styles.orb1]} />
-        <View style={[styles.orb, styles.orb2]} />
-        <View style={[styles.orb, styles.orb3]} />
-      </Animated.View>
+      {/* Animated orbs - simplified for web */}
+      {Platform.OS === "web" ? (
+        <View style={styles.orbContainer}>
+          <View style={[styles.orb, styles.orb1]} />
+          <View style={[styles.orb, styles.orb2]} />
+          <View style={[styles.orb, styles.orb3]} />
+        </View>
+      ) : (
+        <Animated.View style={[styles.orbContainer, animatedStyle]}>
+          <View style={[styles.orb, styles.orb1]} />
+          <View style={[styles.orb, styles.orb2]} />
+          <View style={[styles.orb, styles.orb3]} />
+        </Animated.View>
+      )}
 
       {/* Noise overlay */}
       <View style={styles.noiseOverlay} />

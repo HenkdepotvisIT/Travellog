@@ -1,7 +1,7 @@
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { View, StyleSheet, ViewStyle, Platform } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, FadeIn } from "react-native-reanimated";
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -18,13 +18,15 @@ export default function GlassCard({
   delay = 0,
   direction = "up",
 }: GlassCardProps) {
-  const AnimatedView = Animated.View;
-  const enterAnimation = direction === "up" 
-    ? FadeInUp.delay(delay).springify().damping(15)
-    : FadeInDown.delay(delay).springify().damping(15);
+  // Use simpler animation on web to avoid DOM issues
+  const enterAnimation = Platform.OS === "web"
+    ? FadeIn.delay(delay).duration(300)
+    : direction === "up" 
+      ? FadeInUp.delay(delay).springify().damping(15)
+      : FadeInDown.delay(delay).springify().damping(15);
 
   return (
-    <AnimatedView entering={enterAnimation} style={[styles.container, style]}>
+    <Animated.View entering={enterAnimation} style={[styles.container, style]}>
       <View style={styles.glassContainer}>
         <BlurView intensity={intensity} tint="dark" style={styles.blur}>
           <LinearGradient
@@ -42,7 +44,7 @@ export default function GlassCard({
         </BlurView>
         <View style={styles.border} />
       </View>
-    </AnimatedView>
+    </Animated.View>
   );
 }
 

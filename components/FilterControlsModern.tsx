@@ -7,13 +7,12 @@ import {
   Modal,
   StyleSheet,
   ScrollView,
+  Platform,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   FadeIn,
-  FadeInDown,
-  FadeOut,
   SlideInDown,
   SlideOutDown,
   useAnimatedStyle,
@@ -59,7 +58,7 @@ function FilterChip({
   }));
 
   return (
-    <Animated.View entering={FadeIn.delay(delay)}>
+    <Animated.View entering={FadeIn.delay(delay).duration(200)}>
       <AnimatedPressable
         onPress={onPress}
         onPressIn={() => {
@@ -108,6 +107,11 @@ export default function FilterControlsModern({
     });
   };
 
+  // Use simpler modal animation on web
+  const modalEntering = Platform.OS === "web" 
+    ? FadeIn.duration(200)
+    : SlideInDown.springify().damping(15);
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -116,7 +120,7 @@ export default function FilterControlsModern({
         contentContainerStyle={styles.scrollContent}
       >
         {/* Filter Button */}
-        <Animated.View entering={FadeIn}>
+        <Animated.View entering={FadeIn.duration(200)}>
           <Pressable
             style={styles.filterButton}
             onPress={() => setShowFilters(true)}
@@ -157,22 +161,17 @@ export default function FilterControlsModern({
       {/* Filter Modal */}
       <Modal
         visible={showFilters}
-        animationType="none"
+        animationType={Platform.OS === "web" ? "fade" : "none"}
         transparent
         onRequestClose={() => setShowFilters(false)}
       >
-        <Animated.View
-          entering={FadeIn}
-          exiting={FadeOut}
-          style={styles.modalOverlay}
-        >
+        <View style={styles.modalOverlay}>
           <Pressable
             style={StyleSheet.absoluteFill}
             onPress={() => setShowFilters(false)}
           />
           <Animated.View
-            entering={SlideInDown.springify().damping(15)}
-            exiting={SlideOutDown}
+            entering={modalEntering}
             style={styles.modalContent}
           >
             <BlurView intensity={100} tint="dark" style={styles.modalBlur}>
@@ -264,7 +263,7 @@ export default function FilterControlsModern({
             </BlurView>
             <View style={styles.modalBorder} />
           </Animated.View>
-        </Animated.View>
+        </View>
       </Modal>
     </View>
   );

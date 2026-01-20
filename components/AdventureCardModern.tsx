@@ -1,8 +1,9 @@
-import { View, Text, Pressable, Image, StyleSheet, Dimensions } from "react-native";
+import { View, Text, Pressable, Image, StyleSheet, Dimensions, Platform } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   FadeInUp,
+  FadeIn,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -39,12 +40,13 @@ export default function AdventureCardModern({
     scale.value = withSpring(1, { damping: 15, stiffness: 400 });
   };
 
+  // Use simpler animation on web
+  const enterAnimation = Platform.OS === "web"
+    ? FadeIn.delay(index * 50).duration(300)
+    : FadeInUp.delay(index * 100).springify().damping(15);
+
   return (
-    <Animated.View
-      entering={FadeInUp.delay(index * 100)
-        .springify()
-        .damping(15)}
-    >
+    <Animated.View entering={enterAnimation}>
       <AnimatedPressable
         onPress={onPress}
         onPressIn={handlePressIn}

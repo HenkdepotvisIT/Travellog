@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Dimensions,
+  Platform,
 } from "react-native";
 import { router } from "expo-router";
 import { BlurView } from "expo-blur";
@@ -14,7 +15,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   FadeIn,
   FadeInDown,
-  FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -40,8 +40,12 @@ function ViewToggle({
   viewMode: "map" | "timeline";
   setViewMode: (mode: "map" | "timeline") => void;
 }) {
+  const enterAnimation = Platform.OS === "web"
+    ? FadeIn.delay(100).duration(200)
+    : FadeInDown.delay(200).springify();
+
   return (
-    <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.viewToggle}>
+    <Animated.View entering={enterAnimation} style={styles.viewToggle}>
       <BlurView intensity={60} tint="dark" style={styles.toggleBlur}>
         <LinearGradient
           colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]}
@@ -99,7 +103,7 @@ function HeaderButton({
   }));
 
   return (
-    <Animated.View entering={FadeIn.delay(delay)}>
+    <Animated.View entering={FadeIn.delay(delay).duration(200)}>
       <AnimatedPressable
         onPress={onPress}
         onPressIn={() => {
@@ -141,12 +145,20 @@ export default function HomeScreen() {
     }
   }, [isConnected]);
 
+  const headerAnimation = Platform.OS === "web"
+    ? FadeIn.delay(50).duration(200)
+    : FadeInDown.delay(100).springify();
+
+  const filterAnimation = Platform.OS === "web"
+    ? FadeIn.delay(150).duration(200)
+    : FadeInDown.delay(300).springify();
+
   return (
     <GradientBackground>
       <View style={styles.container}>
         {/* Header */}
         <Animated.View
-          entering={FadeInDown.delay(100).springify()}
+          entering={headerAnimation}
           style={styles.header}
         >
           <View>
@@ -181,14 +193,14 @@ export default function HomeScreen() {
         <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
 
         {/* Filter Controls */}
-        <Animated.View entering={FadeInDown.delay(300).springify()}>
+        <Animated.View entering={filterAnimation}>
           <FilterControlsModern filters={filters} onFiltersChange={setFilters} />
         </Animated.View>
 
         {/* Main Content */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <Animated.View entering={FadeIn.delay(200)}>
+            <Animated.View entering={FadeIn.delay(100).duration(200)}>
               <GlassCard>
                 <View style={styles.loadingContent}>
                   <ActivityIndicator size="large" color="#3b82f6" />
@@ -224,7 +236,7 @@ export default function HomeScreen() {
             contentContainerStyle={styles.timelineContent}
           >
             {adventures.length === 0 ? (
-              <GlassCard delay={200}>
+              <GlassCard delay={100}>
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyStateEmoji}>🌍</Text>
                   <Text style={styles.emptyStateTitle}>No adventures yet</Text>

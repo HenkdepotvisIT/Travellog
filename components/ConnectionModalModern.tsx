@@ -14,12 +14,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   FadeIn,
-  FadeOut,
   SlideInDown,
-  SlideOutDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
 } from "react-native-reanimated";
 import AnimatedButton from "./ui/AnimatedButton";
 
@@ -72,10 +67,15 @@ export default function ConnectionModalModern({
     setApiKey("");
   };
 
+  // Use simpler animation on web
+  const modalEntering = Platform.OS === "web"
+    ? FadeIn.duration(200)
+    : SlideInDown.springify().damping(15);
+
   return (
     <Modal
       visible={visible}
-      animationType="none"
+      animationType={Platform.OS === "web" ? "fade" : "none"}
       transparent
       onRequestClose={onClose}
     >
@@ -83,16 +83,11 @@ export default function ConnectionModalModern({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        <Animated.View
-          entering={FadeIn}
-          exiting={FadeOut}
-          style={styles.overlay}
-        >
+        <View style={styles.overlay}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
           
           <Animated.View
-            entering={SlideInDown.springify().damping(15)}
-            exiting={SlideOutDown}
+            entering={modalEntering}
             style={styles.modalContainer}
           >
             <BlurView intensity={100} tint="dark" style={styles.modalBlur}>
@@ -202,9 +197,9 @@ export default function ConnectionModalModern({
                     </View>
 
                     {error && (
-                      <Animated.View entering={FadeIn} style={styles.errorContainer}>
+                      <View style={styles.errorContainer}>
                         <Text style={styles.errorText}>⚠️ {error}</Text>
-                      </Animated.View>
+                      </View>
                     )}
 
                     <View style={styles.actions}>
@@ -229,7 +224,7 @@ export default function ConnectionModalModern({
             </BlurView>
             <View style={styles.modalBorder} />
           </Animated.View>
-        </Animated.View>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
