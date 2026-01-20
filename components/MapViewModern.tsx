@@ -21,6 +21,26 @@ interface MapViewModernProps {
   onAdventurePress: (id: string) => void;
 }
 
+// Convert lat/lng to x/y position on the map using Web Mercator projection
+function latLngToPosition(lat: number, lng: number, mapWidth: number, mapHeight: number) {
+  // Clamp latitude to avoid infinity at poles
+  const clampedLat = Math.max(-85, Math.min(85, lat));
+  
+  // Convert longitude to x (simple linear mapping)
+  const x = ((lng + 180) / 360) * mapWidth;
+  
+  // Convert latitude to y using Mercator projection
+  const latRad = (clampedLat * Math.PI) / 180;
+  const mercatorY = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+  
+  // Map mercator Y to pixel coordinates
+  // Mercator Y ranges from about -3.14 to 3.14 for latitudes -85 to 85
+  const maxMercatorY = Math.log(Math.tan(Math.PI / 4 + (85 * Math.PI / 180) / 2));
+  const y = mapHeight / 2 - (mercatorY / maxMercatorY) * (mapHeight / 2);
+  
+  return { x, y };
+}
+
 function PulsingDot() {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(0.6);
@@ -68,6 +88,10 @@ export default function MapViewModern({
     ? FadeIn.delay(400).duration(300)
     : FadeInUp.delay(600).springify();
 
+  // Calculate map dimensions (accounting for margins)
+  const mapWidth = width - 40;
+  const mapHeight = height * 0.55;
+
   return (
     <View style={styles.container}>
       {/* Map Background */}
@@ -101,8 +125,16 @@ export default function MapViewModern({
 
         {/* Adventure Pins */}
         {adventures.map((adventure, index) => {
-          const x = ((adventure.coordinates.lng + 180) / 360) * (width - 80) + 20;
-          const y = ((90 - adventure.coordinates.lat) / 180) * (height * 0.45) + 20;
+          const { x, y } = latLngToPosition(
+            adventure.coordinates.lat,
+            adventure.coordinates.lng,
+            mapWidth,
+            mapHeight
+          );
+
+          // Ensure pins stay within bounds with some padding
+          const clampedX = Math.max(20, Math.min(x, mapWidth - 20));
+          const clampedY = Math.max(40, Math.min(y, mapHeight - 80));
 
           const pinAnimation = Platform.OS === "web"
             ? FadeIn.delay(200 + index * 50).duration(300)
@@ -115,8 +147,8 @@ export default function MapViewModern({
               style={[
                 styles.pinContainer,
                 {
-                  left: Math.max(30, Math.min(x, width - 70)),
-                  top: Math.max(30, Math.min(y, height * 0.35)),
+                  left: clampedX - 16,
+                  top: clampedY - 16,
                 },
               ]}
             >
@@ -129,6 +161,11 @@ export default function MapViewModern({
                   >
                     <Text style={styles.pinEmoji}>📍</Text>
                   </LinearGradient>
+                </View>
+                <View style={styles.pinLabel}>
+                  <Text style={styles.pinLabelText} numberOfLines={1}>
+                    {adventure.location}
+                  </Text>
                 </View>
               </Pressable>
             </Animated.View>
@@ -237,6 +274,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 10,
   },
   pulsingRing: {
     position: "absolute",
@@ -244,8 +282,8 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     backgroundColor: "#3b82f6",
-    top: -10,
-    left: -10,
+    top: -9,
+    left: -9,
   },
   pinDot: {
     width: 32,
@@ -265,6 +303,20 @@ const styles = StyleSheet.create({
   },
   pinEmoji: {
     fontSize: 16,
+  },
+  pinLabel: {
+    backgroundColor: "rgba(15, 23, 42, 0.9)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 4,
+    maxWidth: 100,
+  },
+  pinLabelText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "600",
+    textAlign: "center",
   },
   legendContainer: {
     position: "absolute",
