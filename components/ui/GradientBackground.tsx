@@ -6,6 +6,7 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
+  interpolate,
 } from "react-native-reanimated";
 import { useEffect } from "react";
 
@@ -15,20 +16,141 @@ interface GradientBackgroundProps {
   children: React.ReactNode;
 }
 
-export default function GradientBackground({ children }: GradientBackgroundProps) {
-  const rotation = useSharedValue(0);
+function FloatingParticle({ 
+  size, 
+  color, 
+  initialX, 
+  initialY, 
+  duration,
+  delay = 0 
+}: {
+  size: number;
+  color: string;
+  initialX: number;
+  initialY: number;
+  duration: number;
+  delay?: number;
+}) {
+  const translateY = useSharedValue(0);
+  const translateX = useSharedValue(0);
+  const opacity = useSharedValue(0.3);
   const scale = useSharedValue(1);
 
   useEffect(() => {
-    // Only run animations on native to avoid web issues
+    if (Platform.OS !== "web") {
+      // Vertical floating motion
+      translateY.value = withRepeat(
+        withTiming(-50, { 
+          duration: duration + Math.random() * 2000, 
+          easing: Easing.inOut(Easing.sine) 
+        }),
+        -1,
+        true
+      );
+
+      // Horizontal drift
+      translateX.value = withRepeat(
+        withTiming(30, { 
+          duration: duration * 1.5, 
+          easing: Easing.inOut(Easing.sine) 
+        }),
+        -1,
+        true
+      );
+
+      // Opacity pulse
+      opacity.value = withRepeat(
+        withTiming(0.1, { 
+          duration: duration * 0.8, 
+          easing: Easing.inOut(Easing.ease) 
+        }),
+        -1,
+        true
+      );
+
+      // Scale pulse
+      scale.value = withRepeat(
+        withTiming(1.2, { 
+          duration: duration * 1.2, 
+          easing: Easing.inOut(Easing.ease) 
+        }),
+        -1,
+        true
+      );
+    }
+  }, [duration]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    if (Platform.OS === "web") {
+      return {
+        opacity: 0.2,
+      };
+    }
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
+      ],
+      opacity: opacity.value,
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.particle,
+        {
+          width: size,
+          height: size,
+          backgroundColor: color,
+          left: initialX,
+          top: initialY,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+function MovingOrb({ 
+  size, 
+  color, 
+  initialPosition, 
+  shadowColor 
+}: {
+  size: number;
+  color: string;
+  initialPosition: { x: number; y: number };
+  shadowColor: string;
+}) {
+  const rotation = useSharedValue(0);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
     if (Platform.OS !== "web") {
       rotation.value = withRepeat(
-        withTiming(360, { duration: 20000, easing: Easing.linear }),
+        withTiming(360, { duration: 25000, easing: Easing.linear }),
         -1,
         false
       );
+
+      translateX.value = withRepeat(
+        withTiming(50, { duration: 8000, easing: Easing.inOut(Easing.sine) }),
+        -1,
+        true
+      );
+
+      translateY.value = withRepeat(
+        withTiming(30, { duration: 12000, easing: Easing.inOut(Easing.sine) }),
+        -1,
+        true
+      );
+
       scale.value = withRepeat(
-        withTiming(1.2, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1.1, { duration: 6000, easing: Easing.inOut(Easing.ease) }),
         -1,
         true
       );
@@ -42,10 +164,42 @@ export default function GradientBackground({ children }: GradientBackgroundProps
     return {
       transform: [
         { rotate: `${rotation.value}deg` },
+        { translateX: translateX.value },
+        { translateY: translateY.value },
         { scale: scale.value },
       ],
     };
   });
+
+  return (
+    <Animated.View
+      style={[
+        styles.orb,
+        {
+          width: size,
+          height: size,
+          backgroundColor: color,
+          left: initialPosition.x,
+          top: initialPosition.y,
+          shadowColor,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+export default function GradientBackground({ children }: GradientBackgroundProps) {
+  // Generate random particles
+  const particles = Array.from({ length: 12 }, (_, i) => ({
+    id: i,
+    size: Math.random() * 4 + 2,
+    color: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981'][Math.floor(Math.random() * 4)],
+    initialX: Math.random() * width,
+    initialY: Math.random() * height,
+    duration: Math.random() * 3000 + 4000,
+    delay: Math.random() * 2000,
+  }));
 
   return (
     <View style={styles.container}>
@@ -55,20 +209,74 @@ export default function GradientBackground({ children }: GradientBackgroundProps
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Animated orbs - simplified for web */}
-      {Platform.OS === "web" ? (
-        <View style={styles.orbContainer}>
-          <View style={[styles.orb, styles.orb1]} />
-          <View style={[styles.orb, styles.orb2]} />
-          <View style={[styles.orb, styles.orb3]} />
-        </View>
-      ) : (
-        <Animated.View style={[styles.orbContainer, animatedStyle]}>
-          <View style={[styles.orb, styles.orb1]} />
-          <View style={[styles.orb, styles.orb2]} />
-          <View style={[styles.orb, styles.orb3]} />
-        </Animated.View>
-      )}
+      {/* Moving orbs */}
+      <View style={styles.orbContainer}>
+        <MovingOrb
+          size={width * 0.8}
+          color="#3b82f6"
+          initialPosition={{ x: -width * 0.2, y: -width * 0.2 }}
+          shadowColor="#3b82f6"
+        />
+        <MovingOrb
+          size={width * 0.6}
+          color="#8b5cf6"
+          initialPosition={{ x: width * 0.6, y: height * 0.7 }}
+          shadowColor="#8b5cf6"
+        />
+        <MovingOrb
+          size={width * 0.5}
+          color="#06b6d4"
+          initialPosition={{ x: -width * 0.1, y: height * 0.8 }}
+          shadowColor="#06b6d4"
+        />
+      </View>
+
+      {/* Floating particles */}
+      <View style={styles.particleContainer}>
+        {particles.map((particle) => (
+          <FloatingParticle
+            key={particle.id}
+            size={particle.size}
+            color={particle.color}
+            initialX={particle.initialX}
+            initialY={particle.initialY}
+            duration={particle.duration}
+            delay={particle.delay}
+          />
+        ))}
+      </View>
+
+      {/* Subtle grid overlay */}
+      <View style={styles.gridOverlay}>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <View
+            key={`h-${i}`}
+            style={[
+              styles.gridLine,
+              {
+                top: `${i * 5}%`,
+                width: '100%',
+                height: 1,
+                opacity: 0.03,
+              },
+            ]}
+          />
+        ))}
+        {Array.from({ length: 15 }).map((_, i) => (
+          <View
+            key={`v-${i}`}
+            style={[
+              styles.gridLine,
+              {
+                left: `${i * 6.67}%`,
+                height: '100%',
+                width: 1,
+                opacity: 0.03,
+              },
+            ]}
+          />
+        ))}
+      </View>
 
       {/* Noise overlay */}
       <View style={styles.noiseOverlay} />
@@ -86,50 +294,35 @@ const styles = StyleSheet.create({
   },
   orbContainer: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
   },
   orb: {
     position: "absolute",
     borderRadius: 999,
     opacity: 0.4,
-  },
-  orb1: {
-    width: width * 0.8,
-    height: width * 0.8,
-    backgroundColor: "#3b82f6",
-    top: -width * 0.2,
-    left: -width * 0.2,
-    shadowColor: "#3b82f6",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 100,
   },
-  orb2: {
-    width: width * 0.6,
-    height: width * 0.6,
-    backgroundColor: "#8b5cf6",
-    bottom: height * 0.1,
-    right: -width * 0.2,
-    shadowColor: "#8b5cf6",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 80,
+  particleContainer: {
+    ...StyleSheet.absoluteFillObject,
   },
-  orb3: {
-    width: width * 0.5,
-    height: width * 0.5,
-    backgroundColor: "#06b6d4",
-    bottom: -width * 0.1,
-    left: -width * 0.1,
-    shadowColor: "#06b6d4",
+  particle: {
+    position: "absolute",
+    borderRadius: 999,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
-    shadowRadius: 60,
+    shadowRadius: 10,
+  },
+  gridOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  gridLine: {
+    position: "absolute",
+    backgroundColor: "#3b82f6",
   },
   noiseOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
   },
   content: {
     flex: 1,
