@@ -2,9 +2,22 @@ import { Tabs } from "expo-router";
 import { Platform, View, Text, StyleSheet, useWindowDimensions } from "react-native";
 
 function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
+  const { width } = useWindowDimensions();
+  const isVerySmall = width < 350;
+  
   return (
-    <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-      <Text style={[styles.icon, focused && styles.iconActive]}>{icon}</Text>
+    <View style={[
+      styles.iconContainer, 
+      focused && styles.iconContainerActive,
+      isVerySmall && styles.iconContainerSmall
+    ]}>
+      <Text style={[
+        styles.icon, 
+        focused && styles.iconActive,
+        isVerySmall && styles.iconSmall
+      ]}>
+        {icon}
+      </Text>
     </View>
   );
 }
@@ -12,6 +25,7 @@ function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
 export default function TabLayout() {
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 380;
+  const isVerySmall = width < 350;
 
   return (
     <Tabs
@@ -21,21 +35,24 @@ export default function TabLayout() {
           backgroundColor: "#0f172a",
           borderTopColor: "rgba(255, 255, 255, 0.1)",
           borderTopWidth: 1,
-          paddingBottom: Platform.OS === "ios" ? (isSmallScreen ? 20 : 24) : (isSmallScreen ? 4 : 8),
-          paddingTop: isSmallScreen ? 4 : 8,
-          height: Platform.OS === "ios" ? (isSmallScreen ? 80 : 88) : (isSmallScreen ? 56 : 64),
-          paddingHorizontal: isSmallScreen ? 8 : 16,
+          paddingBottom: Platform.OS === "ios" ? (isVerySmall ? 16 : isSmallScreen ? 20 : 24) : (isVerySmall ? 2 : isSmallScreen ? 4 : 8),
+          paddingTop: isVerySmall ? 2 : isSmallScreen ? 4 : 8,
+          height: Platform.OS === "ios" ? (isVerySmall ? 72 : isSmallScreen ? 80 : 88) : (isVerySmall ? 48 : isSmallScreen ? 56 : 64),
+          paddingHorizontal: isVerySmall ? 4 : isSmallScreen ? 8 : 16,
         },
         tabBarActiveTintColor: "#3b82f6",
         tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)",
         tabBarLabelStyle: {
-          fontSize: isSmallScreen ? 10 : 11,
+          fontSize: isVerySmall ? 8 : isSmallScreen ? 9 : 11,
           fontWeight: "600",
-          marginTop: isSmallScreen ? 1 : 2,
+          marginTop: isVerySmall ? 0 : isSmallScreen ? 1 : 2,
+          lineHeight: isVerySmall ? 10 : isSmallScreen ? 12 : 14,
         },
         tabBarItemStyle: {
-          paddingHorizontal: isSmallScreen ? 2 : 4,
+          paddingHorizontal: isVerySmall ? 0 : isSmallScreen ? 1 : 4,
+          minWidth: isVerySmall ? 60 : isSmallScreen ? 70 : undefined,
         },
+        tabBarAllowFontScaling: false,
       }}
     >
       <Tabs.Screen
@@ -48,7 +65,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="adventures"
         options={{
-          title: isSmallScreen ? "Trips" : "Adventures",
+          title: isVerySmall ? "Trip" : isSmallScreen ? "Trips" : "Adventures",
           tabBarIcon: ({ focused }) => <TabIcon icon="🌍" focused={focused} />,
         }}
       />
@@ -62,7 +79,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: isSmallScreen ? "Config" : "Settings",
+          title: isVerySmall ? "Set" : isSmallScreen ? "Config" : "Settings",
           tabBarIcon: ({ focused }) => <TabIcon icon="⚙️" focused={focused} />,
         }}
       />
@@ -81,10 +98,18 @@ const styles = StyleSheet.create({
   iconContainerActive: {
     backgroundColor: "rgba(59, 130, 246, 0.2)",
   },
+  iconContainerSmall: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
   icon: {
     fontSize: 16,
   },
   iconActive: {
     fontSize: 18,
+  },
+  iconSmall: {
+    fontSize: 14,
   },
 });
