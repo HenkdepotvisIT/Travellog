@@ -30,7 +30,47 @@ interface GenerateResult {
 }
 
 class AIService {
+  private apiAvailable: boolean | null = null;
+
+  private async checkApiAvailability(): Promise<boolean> {
+    if (this.apiAvailable !== null) {
+      return this.apiAvailable;
+    }
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
+      const response = await fetch(`${API_BASE}/api/health`, {
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      this.apiAvailable = response.ok;
+      return this.apiAvailable;
+    } catch (error) {
+      console.log("AI API not available");
+      this.apiAvailable = false;
+      return false;
+    }
+  }
+
   async getConfig(): Promise<AIConfig> {
+    const isAvailable = await this.checkApiAvailability();
+    
+    if (!isAvailable) {
+      return {
+        provider: "gemini",
+        model: "gemini-1.5-flash",
+        autoGenerate: false,
+        isConfigured: false,
+        availableProviders: {
+          openai: false,
+          gemini: false,
+        },
+      };
+    }
+    
     try {
       const response = await fetch(`${API_BASE}/api/ai/config`);
       if (!response.ok) throw new Error("Failed to get AI config");
@@ -51,6 +91,9 @@ class AIService {
   }
 
   async updateConfig(config: Partial<AIConfig>): Promise<void> {
+    const isAvailable = await this.checkApiAvailability();
+    if (!isAvailable) return;
+    
     const response = await fetch(`${API_BASE}/api/ai/config`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -60,6 +103,11 @@ class AIService {
   }
 
   async generateSummary(adventureId: string): Promise<GenerateResult> {
+    const isAvailable = await this.checkApiAvailability();
+    if (!isAvailable) {
+      throw new Error("AI service not available. Please ensure the server is running with GEMINI_API_KEY configured.");
+    }
+    
     const response = await fetch(`${API_BASE}/api/ai/generate-summary/${adventureId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -74,6 +122,11 @@ class AIService {
   }
 
   async generateHighlights(adventureId: string): Promise<GenerateResult> {
+    const isAvailable = await this.checkApiAvailability();
+    if (!isAvailable) {
+      throw new Error("AI service not available. Please ensure the server is running with GEMINI_API_KEY configured.");
+    }
+    
     const response = await fetch(`${API_BASE}/api/ai/generate-highlights/${adventureId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -88,6 +141,11 @@ class AIService {
   }
 
   async generateStory(adventureId: string, style: string = "narrative"): Promise<GenerateResult> {
+    const isAvailable = await this.checkApiAvailability();
+    if (!isAvailable) {
+      throw new Error("AI service not available. Please ensure the server is running with GEMINI_API_KEY configured.");
+    }
+    
     const response = await fetch(`${API_BASE}/api/ai/generate-story/${adventureId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -103,6 +161,11 @@ class AIService {
   }
 
   async regenerateAll(adventureId: string): Promise<GenerateResult> {
+    const isAvailable = await this.checkApiAvailability();
+    if (!isAvailable) {
+      throw new Error("AI service not available. Please ensure the server is running with GEMINI_API_KEY configured.");
+    }
+    
     const response = await fetch(`${API_BASE}/api/ai/regenerate-all/${adventureId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
