@@ -22,70 +22,12 @@ import Animated, {
 import { useAdventures } from "../hooks/useAdventures";
 import { useImmichConnection } from "../hooks/useImmichConnection";
 import GradientBackground from "../components/ui/GradientBackground";
-import GlassCard from "../components/ui/GlassCard";
-import AnimatedButton from "../components/ui/AnimatedButton";
-import MapViewModern from "../components/MapViewModern";
-import AdventureCardModern from "../components/AdventureCardModern";
-import FilterControlsModern from "../components/FilterControlsModern";
+import AdventureCardHorizontal from "../components/AdventureCardHorizontal";
 import ConnectionModal from "../components/ConnectionModal";
 
 const { width } = Dimensions.get("window");
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-function ViewToggle({
-  viewMode,
-  setViewMode,
-}: {
-  viewMode: "map" | "timeline";
-  setViewMode: (mode: "map" | "timeline") => void;
-}) {
-  const enterAnimation = Platform.OS === "web"
-    ? FadeIn.delay(100).duration(200)
-    : FadeInDown.delay(200).springify();
-
-  return (
-    <Animated.View entering={enterAnimation} style={styles.viewToggle}>
-      <BlurView intensity={60} tint="dark" style={styles.toggleBlur}>
-        <LinearGradient
-          colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]}
-          style={styles.toggleGradient}
-        >
-          <Pressable
-            style={[styles.toggleButton, viewMode === "map" && styles.toggleActive]}
-            onPress={() => setViewMode("map")}
-          >
-            {viewMode === "map" ? (
-              <LinearGradient
-                colors={["#3b82f6", "#2563eb"]}
-                style={styles.toggleActiveGradient}
-              >
-                <Text style={styles.toggleTextActive}>🗺️ Map</Text>
-              </LinearGradient>
-            ) : (
-              <Text style={styles.toggleText}>🗺️ Map</Text>
-            )}
-          </Pressable>
-          <Pressable
-            style={[styles.toggleButton, viewMode === "timeline" && styles.toggleActive]}
-            onPress={() => setViewMode("timeline")}
-          >
-            {viewMode === "timeline" ? (
-              <LinearGradient
-                colors={["#3b82f6", "#2563eb"]}
-                style={styles.toggleActiveGradient}
-              >
-                <Text style={styles.toggleTextActive}>📅 Timeline</Text>
-              </LinearGradient>
-            ) : (
-              <Text style={styles.toggleText}>📅 Timeline</Text>
-            )}
-          </Pressable>
-        </LinearGradient>
-      </BlurView>
-    </Animated.View>
-  );
-}
 
 function HeaderButton({
   icon,
@@ -114,23 +56,17 @@ function HeaderButton({
         }}
         style={animatedStyle}
       >
-        <BlurView intensity={60} tint="dark" style={styles.headerButtonBlur}>
-          <LinearGradient
-            colors={["rgba(255,255,255,0.15)", "rgba(255,255,255,0.05)"]}
-            style={styles.headerButtonGradient}
-          >
-            <Text style={styles.headerButtonText}>{icon}</Text>
-          </LinearGradient>
-        </BlurView>
+        <View style={styles.headerButton}>
+          <Text style={styles.headerButtonText}>{icon}</Text>
+        </View>
       </AnimatedPressable>
     </Animated.View>
   );
 }
 
 export default function HomeScreen() {
-  const [viewMode, setViewMode] = useState<"map" | "timeline">("map");
   const [showConnectionModal, setShowConnectionModal] = useState(false);
-  const [filters, setFilters] = useState({
+  const [filters] = useState({
     dateRange: null as { start: Date; end: Date } | null,
     country: null as string | null,
     minDistance: 0,
@@ -149,10 +85,6 @@ export default function HomeScreen() {
     ? FadeIn.delay(50).duration(200)
     : FadeInDown.delay(100).springify();
 
-  const filterAnimation = Platform.OS === "web"
-    ? FadeIn.delay(150).duration(200)
-    : FadeInDown.delay(300).springify();
-
   return (
     <GradientBackground>
       <View style={styles.container}>
@@ -161,21 +93,11 @@ export default function HomeScreen() {
           entering={headerAnimation}
           style={styles.header}
         >
-          <View>
-            <Text style={styles.title}>Travel Log</Text>
-            <View style={styles.subtitleRow}>
-              <View
-                style={[
-                  styles.statusDot,
-                  isConnected ? styles.statusConnected : styles.statusDisconnected,
-                ]}
-              />
-              <Text style={styles.subtitle}>
-                {isConnected ? "Connected" : "Not connected"}
-              </Text>
-            </View>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>Good morning</Text>
+            <Text style={styles.title}>Your Adventures</Text>
           </View>
-          <View style={styles.headerButtons}>
+          <View style={styles.headerRight}>
             <HeaderButton
               icon="🔗"
               onPress={() => setShowConnectionModal(true)}
@@ -189,81 +111,112 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
-        {/* View Toggle */}
-        <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-
-        {/* Filter Controls */}
-        <Animated.View entering={filterAnimation}>
-          <FilterControlsModern filters={filters} onFiltersChange={setFilters} />
+        {/* Connection Status */}
+        <Animated.View
+          entering={FadeIn.delay(200).duration(300)}
+          style={styles.statusContainer}
+        >
+          <View style={styles.statusRow}>
+            <View
+              style={[
+                styles.statusDot,
+                isConnected ? styles.statusConnected : styles.statusDisconnected,
+              ]}
+            />
+            <Text style={styles.statusText}>
+              {isConnected ? `Connected to ${serverUrl?.split('//')[1]?.split('.')[0] || 'Immich'}` : "Not connected to Immich"}
+            </Text>
+          </View>
         </Animated.View>
 
         {/* Main Content */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <Animated.View entering={FadeIn.delay(100).duration(200)}>
-              <GlassCard>
-                <View style={styles.loadingContent}>
-                  <ActivityIndicator size="large" color="#3b82f6" />
-                  <Text style={styles.loadingText}>Loading adventures...</Text>
-                </View>
-              </GlassCard>
-            </Animated.View>
+            <ActivityIndicator size="large" color="#3b82f6" />
+            <Text style={styles.loadingText}>Loading your adventures...</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
-            <GlassCard>
-              <View style={styles.errorContent}>
-                <Text style={styles.errorEmoji}>😕</Text>
-                <Text style={styles.errorText}>{error}</Text>
-                <AnimatedButton
-                  title="Try Again"
-                  icon="🔄"
-                  onPress={refresh}
-                  variant="primary"
-                />
-              </View>
-            </GlassCard>
+            <Text style={styles.errorEmoji}>😕</Text>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable style={styles.retryButton} onPress={refresh}>
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </Pressable>
           </View>
-        ) : viewMode === "map" ? (
-          <MapViewModern
-            adventures={adventures}
-            onAdventurePress={(id) => router.push(`/adventure/${id}`)}
-          />
+        ) : adventures.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyEmoji}>🌍</Text>
+            <Text style={styles.emptyTitle}>No adventures yet</Text>
+            <Text style={styles.emptyText}>
+              Connect to your Immich server to discover your travel adventures
+            </Text>
+            <Pressable 
+              style={styles.connectButton} 
+              onPress={() => setShowConnectionModal(true)}
+            >
+              <LinearGradient
+                colors={["#3b82f6", "#2563eb"]}
+                style={styles.connectButtonGradient}
+              >
+                <Text style={styles.connectButtonText}>Connect Now</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
         ) : (
-          <ScrollView
-            style={styles.timeline}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.timelineContent}
-          >
-            {adventures.length === 0 ? (
-              <GlassCard delay={100}>
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateEmoji}>🌍</Text>
-                  <Text style={styles.emptyStateTitle}>No adventures yet</Text>
-                  <Text style={styles.emptyStateText}>
-                    Connect to your Immich server to discover your travel adventures
-                  </Text>
-                  <AnimatedButton
-                    title="Connect Now"
-                    icon="🔗"
-                    onPress={() => setShowConnectionModal(true)}
-                    variant="primary"
-                    style={{ marginTop: 16 }}
+          <>
+            {/* Adventures Section */}
+            <View style={styles.adventuresSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Adventures</Text>
+                <Text style={styles.sectionCount}>{adventures.length} trips</Text>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.adventuresScroll}
+                decelerationRate="fast"
+                snapToInterval={width * 0.8 + 16}
+                snapToAlignment="start"
+              >
+                {adventures.map((adventure, index) => (
+                  <AdventureCardHorizontal
+                    key={adventure.id}
+                    adventure={adventure}
+                    onPress={() => router.push(`/adventure/${adventure.id}`)}
+                    index={index}
                   />
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Quick Stats */}
+            <Animated.View
+              entering={FadeIn.delay(400).duration(300)}
+              style={styles.statsSection}
+            >
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statNumber}>
+                    {adventures.reduce((sum, a) => sum + a.mediaCount, 0)}
+                  </Text>
+                  <Text style={styles.statLabel}>Photos</Text>
                 </View>
-              </GlassCard>
-            ) : (
-              adventures.map((adventure, index) => (
-                <AdventureCardModern
-                  key={adventure.id}
-                  adventure={adventure}
-                  onPress={() => router.push(`/adventure/${adventure.id}`)}
-                  index={index}
-                />
-              ))
-            )}
-            <View style={{ height: 100 }} />
-          </ScrollView>
+                <View style={styles.statCard}>
+                  <Text style={styles.statNumber}>
+                    {adventures.reduce((sum, a) => sum + a.distance, 0).toLocaleString()}km
+                  </Text>
+                  <Text style={styles.statLabel}>Traveled</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statNumber}>
+                    {new Set(adventures.map(a => a.location)).size}
+                  </Text>
+                  <Text style={styles.statLabel}>Countries</Text>
+                </View>
+              </View>
+            </Animated.View>
+          </>
         )}
 
         {/* Connection Modal */}
@@ -287,10 +240,18 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
+    alignItems: "flex-end",
+    paddingHorizontal: 24,
     paddingTop: 60,
-    paddingBottom: 16,
+    paddingBottom: 20,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  greeting: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginBottom: 4,
   },
   title: {
     fontSize: 32,
@@ -298,10 +259,30 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     letterSpacing: -0.5,
   },
-  subtitleRow: {
+  headerRight: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  headerButtonText: {
+    fontSize: 20,
+  },
+  statusContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
   },
   statusDot: {
     width: 8,
@@ -319,124 +300,137 @@ const styles = StyleSheet.create({
   statusDisconnected: {
     backgroundColor: "#ef4444",
   },
-  subtitle: {
-    fontSize: 13,
+  statusText: {
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.6)",
-  },
-  headerButtons: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  headerButtonBlur: {
-    borderRadius: 22,
-    overflow: "hidden",
-  },
-  headerButtonGradient: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerButtonText: {
-    fontSize: 20,
-  },
-  viewToggle: {
-    marginHorizontal: 20,
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  toggleBlur: {
-    borderRadius: 16,
-  },
-  toggleGradient: {
-    flexDirection: "row",
-    padding: 4,
-    borderRadius: 16,
-  },
-  toggleButton: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  toggleActive: {},
-  toggleActiveGradient: {
-    paddingVertical: 14,
-    alignItems: "center",
-    borderRadius: 12,
-  },
-  toggleText: {
-    color: "rgba(255, 255, 255, 0.6)",
-    fontWeight: "600",
-    fontSize: 15,
-    textAlign: "center",
-    paddingVertical: 14,
-  },
-  toggleTextActive: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 15,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-  },
-  loadingContent: {
-    alignItems: "center",
-    padding: 20,
+    padding: 40,
   },
   loadingText: {
     color: "rgba(255, 255, 255, 0.7)",
     marginTop: 16,
-    fontSize: 15,
+    fontSize: 16,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
-    padding: 20,
-  },
-  errorContent: {
     alignItems: "center",
-    padding: 20,
+    padding: 40,
   },
   errorEmoji: {
-    fontSize: 48,
+    fontSize: 64,
     marginBottom: 16,
   },
   errorText: {
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
-    marginBottom: 20,
-    fontSize: 15,
+    marginBottom: 24,
+    fontSize: 16,
+    lineHeight: 24,
   },
-  timeline: {
+  retryButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  retryButtonText: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+  emptyContainer: {
     flex: 1,
-  },
-  timelineContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
-  emptyState: {
+    justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 40,
   },
-  emptyStateEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+  emptyEmoji: {
+    fontSize: 80,
+    marginBottom: 24,
   },
-  emptyStateTitle: {
-    fontSize: 22,
+  emptyTitle: {
+    fontSize: 24,
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  emptyStateText: {
-    fontSize: 15,
+  emptyText: {
+    fontSize: 16,
     color: "rgba(255, 255, 255, 0.6)",
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  connectButton: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  connectButtonGradient: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+  },
+  connectButtonText: {
+    color: "#ffffff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  adventuresSection: {
+    flex: 1,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  sectionCount: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.5)",
+  },
+  adventuresScroll: {
+    paddingLeft: 24,
+    paddingRight: 24,
+    gap: 16,
+  },
+  statsSection: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.6)",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 });
