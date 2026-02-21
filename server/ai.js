@@ -1,23 +1,25 @@
 const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const db = require('./db');
 
 let openaiClient = null;
+let anthropicClient = null;
 let geminiClient = null;
 
 async function getAIConfig() {
   try {
     const result = await db.query('SELECT * FROM ai_config WHERE id = 1');
-    return result.rows[0] || { 
-      provider: 'gemini', 
-      model: 'gemini-1.5-flash', 
+    return result.rows[0] || {
+      provider: 'anthropic',
+      model: 'claude-haiku-4-5-20251001',
       auto_generate: false,
     };
   } catch (error) {
     console.error('Failed to get AI config:', error);
-    return { 
-      provider: 'gemini', 
-      model: 'gemini-1.5-flash', 
+    return {
+      provider: 'anthropic',
+      model: 'claude-haiku-4-5-20251001',
       auto_generate: false,
     };
   }
@@ -32,6 +34,17 @@ function getOpenAIClient() {
     openaiClient = new OpenAI({ apiKey });
   }
   return openaiClient;
+}
+
+function getAnthropicClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({ apiKey });
+  }
+  return anthropicClient;
 }
 
 function getGeminiClient() {
@@ -78,6 +91,30 @@ async function generateWithGemini(prompt, systemPrompt, config) {
   };
 }
 
+async function generateWithAnthropic(prompt, systemPrompt, config) {
+  const client = getAnthropicClient();
+  if (!client) {
+    throw new Error('Anthropic API key not configured. Set ANTHROPIC_API_KEY environment variable.');
+  }
+
+  const response = await client.messages.create({
+    model: config.model || 'claude-haiku-4-5-20251001',
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: [
+      { role: 'user', content: prompt },
+    ],
+  });
+
+  const text = response.content[0]?.text || '';
+  const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+
+  return {
+    content: text.trim(),
+    tokensUsed,
+  };
+}
+
 async function generateWithOpenAI(prompt, systemPrompt, config) {
   const client = getOpenAIClient();
   if (!client) {
@@ -101,7 +138,9 @@ async function generateWithOpenAI(prompt, systemPrompt, config) {
 }
 
 async function generateContent(prompt, systemPrompt, config) {
-  if (config.provider === 'gemini' || config.provider === 'google') {
+  if (config.provider === 'anthropic') {
+    return generateWithAnthropic(prompt, systemPrompt, config);
+  } else if (config.provider === 'gemini' || config.provider === 'google') {
     return generateWithGemini(prompt, systemPrompt, config);
   } else {
     return generateWithOpenAI(prompt, systemPrompt, config);
@@ -296,11 +335,11 @@ async function regenerateAll(adventure) {
 }
 
 function isConfigured() {
-  const config = {
+  return {
+    anthropic: !!process.env.ANTHROPIC_API_KEY,
     openai: !!process.env.OPENAI_API_KEY,
     gemini: !!process.env.GEMINI_API_KEY,
   };
-  return config;
 }
 
 module.exports = {

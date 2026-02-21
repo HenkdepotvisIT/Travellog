@@ -5,12 +5,13 @@
 # REQUIRED: Set the following environment variables in Portainer's
 # "Environment variables" section before deploying:
 #
-#   GEMINI_API_KEY   - Your Google Gemini API key (free at https://aistudio.google.com/app/apikey)
+#   ANTHROPIC_API_KEY - Your Anthropic API key (https://console.anthropic.com/)
 #   POSTGRES_PASSWORD - A strong password for the database (e.g. changeme123)
 #
 # OPTIONAL:
-#   APP_PORT         - Host port to expose the app on (default: 3000)
-#   OPENAI_API_KEY   - OpenAI API key (alternative to Gemini)
+#   APP_PORT          - Host port to expose the app on (default: 3000)
+#   GEMINI_API_KEY    - Google Gemini API key (alternative AI provider)
+#   OPENAI_API_KEY    - OpenAI API key (alternative AI provider)
 
 version: '3.8'
 
@@ -26,6 +27,7 @@ services:
       - PORT=3000
       - DATA_DIR=/app/data
       - DATABASE_URL=postgresql://travellog:${POSTGRES_PASSWORD:-travellog}@travel-log-db:5432/travellog
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:

@@ -22,6 +22,7 @@ app.get('/api/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       database: 'connected',
       ai: {
+        anthropic: aiStatus.anthropic ? 'configured' : 'not configured',
         openai: aiStatus.openai ? 'configured' : 'not configured',
         gemini: aiStatus.gemini ? 'configured' : 'not configured',
       }
@@ -226,15 +227,17 @@ app.get('/api/ai/config', async (req, res) => {
   try {
     const config = await ai.getAIConfig();
     const status = ai.isConfigured();
+    const providerConfigured = {
+      anthropic: status.anthropic,
+      gemini: status.gemini,
+      openai: status.openai,
+    };
     res.json({
       provider: config.provider,
       model: config.model,
       autoGenerate: config.auto_generate,
-      isConfigured: config.provider === 'gemini' ? status.gemini : status.openai,
-      availableProviders: {
-        openai: status.openai,
-        gemini: status.gemini,
-      },
+      isConfigured: !!providerConfigured[config.provider],
+      availableProviders: providerConfigured,
     });
   } catch (error) {
     console.error('Failed to get AI config:', error);
@@ -724,7 +727,7 @@ app.delete('/api/data', async (req, res) => {
     await db.query('DELETE FROM settings');
     await db.query('UPDATE connection SET server_url = NULL, api_key = NULL, is_connected = FALSE WHERE id = 1');
     await db.query('UPDATE sync_status SET last_sync_time = NULL WHERE id = 1');
-    await db.query('UPDATE ai_config SET provider = \'gemini\', model = \'gemini-1.5-flash\', auto_generate = FALSE WHERE id = 1');
+    await db.query('UPDATE ai_config SET provider = \'anthropic\', model = \'claude-haiku-4-5-20251001\', auto_generate = FALSE WHERE id = 1');
     
     // Re-insert default settings
     await db.query(`
@@ -760,6 +763,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📦 Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'Not configured'}`);
   const aiStatus = ai.isConfigured();
   console.log(`🤖 AI Providers:`);
+  console.log(`   - Anthropic: ${aiStatus.anthropic ? '✅ configured' : '❌ not configured'}`);
   console.log(`   - OpenAI: ${aiStatus.openai ? '✅ configured' : '❌ not configured'}`);
   console.log(`   - Google Gemini: ${aiStatus.gemini ? '✅ configured' : '❌ not configured'}`);
 });

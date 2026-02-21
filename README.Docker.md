@@ -89,10 +89,11 @@ Scroll down to the **Environment variables** section in Portainer and add:
 
 | Variable | Required | Example | Description |
 |---|---|---|---|
-| `GEMINI_API_KEY` | Yes (for AI) | `AIzaSy...` | Free Gemini key from [Google AI Studio](https://aistudio.google.com/app/apikey) |
+| `ANTHROPIC_API_KEY` | Yes (for AI) | `sk-ant-...` | Anthropic API key from [console.anthropic.com](https://console.anthropic.com/) |
 | `POSTGRES_PASSWORD` | Recommended | `MySecurePass123` | Database password (defaults to `travellog` if not set) |
 | `APP_PORT` | No | `3000` | Host port (default: `3000`) |
-| `OPENAI_API_KEY` | No | `sk-...` | Alternative AI provider |
+| `GEMINI_API_KEY` | No | `AIzaSy...` | Alternative AI provider (Google Gemini) |
+| `OPENAI_API_KEY` | No | `sk-...` | Alternative AI provider (OpenAI) |
 
 ### Step 4 – Deploy
 
@@ -119,7 +120,7 @@ cp .env.example .env
 
 Edit `.env`:
 ```
-GEMINI_API_KEY=your-gemini-api-key-here
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
 POSTGRES_PASSWORD=your-secure-password
 ```
 
@@ -149,22 +150,30 @@ Open `http://your-server-ip:3000`.
 | `PORT` | `3000` | Internal port (do not change) |
 | `DATABASE_URL` | (auto) | PostgreSQL connection string |
 | `POSTGRES_PASSWORD` | `travellog` | Database password |
-| `GEMINI_API_KEY` | - | Google Gemini API key (recommended) |
+| `ANTHROPIC_API_KEY` | - | Anthropic API key (recommended) |
+| `GEMINI_API_KEY` | - | Google Gemini API key (alternative) |
 | `OPENAI_API_KEY` | - | OpenAI API key (alternative) |
 
 ### AI Features
 
 To enable AI-powered summaries and highlights:
 
-**Option 1: Google Gemini (Recommended – Free Tier)**
-1. Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Set `GEMINI_API_KEY` in your environment or `.env` file
+**Option 1: Anthropic Claude (Recommended)**
+1. Get your API key at [console.anthropic.com](https://console.anthropic.com/)
+2. Set `ANTHROPIC_API_KEY` in your environment or `.env` file
 3. Restart the containers
 
-**Option 2: OpenAI**
+The default model is `claude-haiku-4-5-20251001` (fast and cost-effective). You can also use `claude-sonnet-4-6` for higher quality output by updating the AI provider setting in the app.
+
+**Option 2: Google Gemini (Free Tier Available)**
+1. Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Set `GEMINI_API_KEY` in your environment or `.env` file
+3. Restart the containers and change the AI provider to `gemini` in the app settings
+
+**Option 3: OpenAI**
 1. Get an API key at [OpenAI](https://platform.openai.com/api-keys)
 2. Set `OPENAI_API_KEY` in your environment or `.env` file
-3. Restart the containers
+3. Restart the containers and change the AI provider to `openai` in the app settings
 
 ---
 
@@ -180,7 +189,7 @@ To enable AI-powered summaries and highlights:
 4. Create your `.env` file:
    ```bash
    cp .env.example .env
-   nano .env   # Add GEMINI_API_KEY and POSTGRES_PASSWORD
+   nano .env   # Add ANTHROPIC_API_KEY and POSTGRES_PASSWORD
    ```
 5. Build and start:
    ```bash
@@ -250,9 +259,9 @@ Returns:
 - Check: `docker-compose logs travel-log-db`
 
 ### AI not working
-- Verify `GEMINI_API_KEY` is set correctly (no quotes, no spaces)
+- Verify `ANTHROPIC_API_KEY` is set correctly (no quotes, no spaces)
 - Check: `curl http://localhost:3000/api/health`
-- Check quotas at [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Verify the key is active at [console.anthropic.com](https://console.anthropic.com/)
 
 ### Port conflict
 - Set `APP_PORT` to a different port (e.g. `3001`) in your environment variables
