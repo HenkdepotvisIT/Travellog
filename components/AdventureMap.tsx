@@ -1,30 +1,157 @@
 import { View, Text, StyleSheet, Dimensions, Platform } from "react-native";
 import { Coordinates, StopPoint } from "../types";
+import { useEffect, useRef, useState } from "react";
 
 const { width } = Dimensions.get("window");
-
-// Conditionally import MapLibre
-let MapLibreGL: any = null;
-try {
-  MapLibreGL = require("@maplibre/maplibre-react-native").default;
-} catch (e) {
-  console.log("MapLibre not available");
-}
 
 interface AdventureMapProps {
   route: Coordinates[];
   stops: StopPoint[];
 }
 
-// Web fallback component
-function WebMapFallback({ route, stops }: AdventureMapProps) {
+// Web Leaflet map component
+function WebLeafletMap({ route, stops }: AdventureMapProps) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !mapRef.current) return;
+
+    const initMap = async () => {
+      try {
+        const L = (await import("leaflet")).default;
+
+        // Import Leaflet CSS
+        if (!document.getElementById("leaflet-css")) {
+          const link = document.createElement("link");
+          link.id = "leaflet-css";
+          link.rel = "stylesheet";
+          link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+          document.head.appendChild(link);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+        }
+
+        // Calculate bounds from route and stops
+        const allPoints = [...route, ...stops];
+        
+        if (allPoints.length === 0) {
+          const map = L.map(mapRef.current!, {
+            center: [20, 0],
+            zoom: 2,
+          });
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; OpenStreetMap',
+          }).addTo(map);
+          mapInstanceRef.current = map;
+          return;
+        }
+
+        const lats = allPoints.map(p => p.lat);
+        const lngs = allPoints.map(p => p.lng);
+        const bounds = L.latLngBounds(
+          [Math.min(...lats) - 0.5, Math.min(...lngs) - 0.5],
+          [Math.max(...lats) + 0.5, Math.max(...lngs) + 0.5]
+        );
+
+        const map = L.map(mapRef.current!, {
+          zoomControl: true,
+        });
+
+        map.fitBounds(bounds, { padding: [30, 30] });
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19,
+        }).addTo(map);
+
+        // Draw route line
+        if (route.length > 1) {
+          const routeCoords = route.map(p => [p.lat, p.lng] as [number, number]);
+          L.polyline(routeCoords, {
+            color: "#3b82f6",
+            weight: 4,
+            opacity: 0.8,
+          }).addTo(map);
+        }
+
+        // Add stop markers
+        stops.forEach((stop, index) => {
+          const marker = L.marker([stop.lat, stop.lng], {
+            icon: L.divIcon({
+              className: "custom-stop-marker",
+              html: `
+                <div style="
+                  width: 32px;
+                  height: 32px;
+                  background: linear-gradient(135deg, #3b82f6, #2563eb);
+                  border-radius: 50%;
+                  border: 3px solid white;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+                  color: white;
+                  font-weight: bold;
+                  font-size: 14px;
+                ">
+                  ${index + 1}
+                </div>
+              `,
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+            }),
+          }).addTo(map);
+
+          marker.bindPopup(`
+            <div style="font-family: -apple-system, sans-serif; min-width: 120px;">
+              <strong style="font-size: 14px;">${stop.name}</strong>
+              <p style="margin: 4px 0 0; color: #64748b; font-size: 12px;">${stop.photos} photos</p>
+            </div>
+          `);
+        });
+
+        mapInstanceRef.current = map;
+      } catch (error) {
+        console.error("Failed to initialize adventure map:", error);
+      }
+    };
+
+    initMap();
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [route, stops]);
+
+  return (
+    <div
+      ref={mapRef}
+      style={{
+        width: "100%",
+        height: 300,
+        borderRadius: 16,
+        overflow: "hidden",
+        backgroundColor: "#1e3a5f",
+      }}
+    />
+  );
+}
+
+// Native fallback component (simple visualization)
+function NativeMapFallback({ route, stops }: AdventureMapProps) {
   if (route.length === 0 && stops.length === 0) {
     return (
-      <View style={styles.container}>
-        <View style={styles.emptyMap}>
-          <Text style={styles.emptyMapText}>🗺️</Text>
-          <Text style={styles.emptyMapSubtext}>No route data available</Text>
-        </View>
+      <View style={styles.emptyMap}>
+        <Text style={styles.emptyMapText}>🗺️</Text>
+        <Text style={styles.emptyMapSubtext}>No route data available</Text>
       </View>
     );
   }
@@ -47,160 +174,62 @@ function WebMapFallback({ route, stops }: AdventureMapProps) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.mapContainer, { width: mapWidth, height: mapHeight }]}>
-        <View style={styles.mapBackground} />
+    <View style={[styles.mapContainer, { width: mapWidth, height: mapHeight }]}>
+      <View style={styles.mapBackground} />
 
-        {/* Route line */}
-        {route.length > 1 && (
-          <View style={styles.routeContainer}>
-            {route.slice(0, -1).map((point, index) => {
-              const start = getPosition(point.lat, point.lng);
-              const end = getPosition(route[index + 1].lat, route[index + 1].lng);
-              const length = Math.sqrt(
-                Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)
-              );
-              const angle = Math.atan2(end.y - start.y, end.x - start.x) * (180 / Math.PI);
+      {/* Route line */}
+      {route.length > 1 && (
+        <View style={styles.routeContainer}>
+          {route.slice(0, -1).map((point, index) => {
+            const start = getPosition(point.lat, point.lng);
+            const end = getPosition(route[index + 1].lat, route[index + 1].lng);
+            const length = Math.sqrt(
+              Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)
+            );
+            const angle = Math.atan2(end.y - start.y, end.x - start.x) * (180 / Math.PI);
 
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.routeLine,
-                    {
-                      left: start.x,
-                      top: start.y,
-                      width: length,
-                      transform: [{ rotate: `${angle}deg` }],
-                    },
-                  ]}
-                />
-              );
-            })}
-          </View>
-        )}
-
-        {/* Stop markers */}
-        {stops.map((stop, index) => {
-          const pos = getPosition(stop.lat, stop.lng);
-          return (
-            <View
-              key={index}
-              style={[
-                styles.stopMarker,
-                {
-                  left: pos.x - 20,
-                  top: pos.y - 20,
-                },
-              ]}
-            >
-              <View style={styles.markerDot}>
-                <Text style={styles.markerNumber}>{index + 1}</Text>
-              </View>
-              <View style={styles.markerLabel}>
-                <Text style={styles.markerName}>{stop.name}</Text>
-                <Text style={styles.markerPhotos}>{stop.photos} photos</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-
-      <StopsList stops={stops} />
-    </View>
-  );
-}
-
-// Native MapLibre component
-function NativeMapView({ route, stops }: AdventureMapProps) {
-  if (!MapLibreGL || (route.length === 0 && stops.length === 0)) {
-    return <WebMapFallback route={route} stops={stops} />;
-  }
-
-  // Calculate bounds
-  const allPoints = [...route, ...stops];
-  const lngs = allPoints.map((p) => p.lng);
-  const lats = allPoints.map((p) => p.lat);
-  const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-  const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-
-  // Calculate appropriate zoom level based on route spread
-  const lngSpread = Math.max(...lngs) - Math.min(...lngs);
-  const latSpread = Math.max(...lats) - Math.min(...lats);
-  const maxSpread = Math.max(lngSpread, latSpread);
-  
-  let zoomLevel = 10;
-  if (maxSpread > 10) zoomLevel = 4;
-  else if (maxSpread > 5) zoomLevel = 5;
-  else if (maxSpread > 2) zoomLevel = 6;
-  else if (maxSpread > 1) zoomLevel = 8;
-
-  const routeCoordinates = route.map((point) => [point.lng, point.lat]);
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.nativeMapContainer}>
-        <MapLibreGL.MapView
-          style={styles.nativeMap}
-          styleURL="https://demotiles.maplibre.org/style.json"
-          logoEnabled={false}
-          attributionEnabled={true}
-          attributionPosition={{ bottom: 8, right: 8 }}
-        >
-          <MapLibreGL.Camera
-            zoomLevel={zoomLevel}
-            centerCoordinate={[centerLng, centerLat]}
-            animationMode="flyTo"
-            animationDuration={1500}
-          />
-
-          {/* Route line */}
-          {routeCoordinates.length > 1 && (
-            <MapLibreGL.ShapeSource
-              id="routeSource"
-              shape={{
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: routeCoordinates,
-                },
-              }}
-            >
-              <MapLibreGL.LineLayer
-                id="routeLine"
-                style={{
-                  lineColor: "#3b82f6",
-                  lineWidth: 4,
-                  lineOpacity: 0.9,
-                  lineCap: "round",
-                  lineJoin: "round",
-                }}
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.routeLine,
+                  {
+                    left: start.x,
+                    top: start.y,
+                    width: length,
+                    transform: [{ rotate: `${angle}deg` }],
+                  },
+                ]}
               />
-            </MapLibreGL.ShapeSource>
-          )}
+            );
+          })}
+        </View>
+      )}
 
-          {/* Stop markers */}
-          {stops.map((stop, index) => (
-            <MapLibreGL.MarkerView
-              key={`stop-${index}`}
-              coordinate={[stop.lng, stop.lat]}
-            >
-              <View style={styles.nativeMarkerContainer}>
-                <View style={styles.nativeMarker}>
-                  <Text style={styles.nativeMarkerNumber}>{index + 1}</Text>
-                </View>
-                <View style={styles.nativeMarkerLabel}>
-                  <Text style={styles.nativeMarkerName}>{stop.name}</Text>
-                  <Text style={styles.nativeMarkerPhotos}>{stop.photos} photos</Text>
-                </View>
-              </View>
-            </MapLibreGL.MarkerView>
-          ))}
-        </MapLibreGL.MapView>
-      </View>
-
-      <StopsList stops={stops} />
+      {/* Stop markers */}
+      {stops.map((stop, index) => {
+        const pos = getPosition(stop.lat, stop.lng);
+        return (
+          <View
+            key={index}
+            style={[
+              styles.stopMarker,
+              {
+                left: pos.x - 20,
+                top: pos.y - 20,
+              },
+            ]}
+          >
+            <View style={styles.markerDot}>
+              <Text style={styles.markerNumber}>{index + 1}</Text>
+            </View>
+            <View style={styles.markerLabel}>
+              <Text style={styles.markerName}>{stop.name}</Text>
+              <Text style={styles.markerPhotos}>{stop.photos} photos</Text>
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -229,10 +258,16 @@ function StopsList({ stops }: { stops: StopPoint[] }) {
 }
 
 export default function AdventureMap(props: AdventureMapProps) {
-  if (Platform.OS === "web") {
-    return <WebMapFallback {...props} />;
-  }
-  return <NativeMapView {...props} />;
+  return (
+    <View style={styles.container}>
+      {Platform.OS === "web" ? (
+        <WebLeafletMap {...props} />
+      ) : (
+        <NativeMapFallback {...props} />
+      )}
+      <StopsList stops={props.stops} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -263,14 +298,6 @@ const styles = StyleSheet.create({
   emptyMapSubtext: {
     color: "rgba(255, 255, 255, 0.6)",
     fontSize: 14,
-  },
-  nativeMapContainer: {
-    height: 300,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  nativeMap: {
-    flex: 1,
   },
   routeContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -315,45 +342,6 @@ const styles = StyleSheet.create({
   markerPhotos: {
     color: "#94a3b8",
     fontSize: 8,
-  },
-  nativeMarkerContainer: {
-    alignItems: "center",
-  },
-  nativeMarker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#3b82f6",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#ffffff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  nativeMarkerNumber: {
-    color: "#ffffff",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  nativeMarkerLabel: {
-    backgroundColor: "rgba(15, 23, 42, 0.95)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginTop: 4,
-  },
-  nativeMarkerName: {
-    color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  nativeMarkerPhotos: {
-    color: "#94a3b8",
-    fontSize: 9,
   },
   stopsList: {
     backgroundColor: "#1e293b",
