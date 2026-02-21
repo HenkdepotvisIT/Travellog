@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Share, Platform } from "react-native";
-import { documentDirectory, writeAsStringAsync } from "expo-file-system";
+import * as FileSystem from "expo-file-system";
 import { storageService } from "../services/storageService";
 
 export function useDataExport() {
@@ -29,9 +29,9 @@ export function useDataExport() {
       } else {
         // Native: Share or save to file
         const fileName = `travel-log-backup-${new Date().toISOString().split("T")[0]}.json`;
-        const filePath = `${documentDirectory}${fileName}`;
+        const filePath = `${FileSystem.documentDirectory}${fileName}`;
         
-        await writeAsStringAsync(filePath, jsonData);
+        await FileSystem.writeAsStringAsync(filePath, jsonData);
         
         await Share.share({
           title: "Travel Log Backup",
