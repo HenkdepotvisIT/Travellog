@@ -35,10 +35,10 @@ export default function TabLayout() {
           backgroundColor: "#ffffff",
           borderTopColor: "rgba(0, 0, 0, 0.1)",
           borderTopWidth: 1,
-          paddingBottom: Platform.OS === "ios" ? (isVerySmall ? 16 : isSmallScreen ? 20 : 24) : (isVerySmall ? 2 : isSmallScreen ? 4 : 8),
-          paddingTop: isVerySmall ? 2 : isSmallScreen ? 4 : 8,
-          height: Platform.OS === "ios" ? (isVerySmall ? 72 : isSmallScreen ? 80 : 88) : (isVerySmall ? 48 : isSmallScreen ? 56 : 64),
-          paddingHorizontal: isVerySmall ? 4 : isSmallScreen ? 8 : 16,
+          paddingBottom: Platform.OS === "ios" ? (isVerySmall ? 16 : isSmallScreen ? 20 : 24) : (isVerySmall ? 4 : isSmallScreen ? 6 : 8),
+          paddingTop: isVerySmall ? 4 : isSmallScreen ? 6 : 8,
+          height: Platform.OS === "ios" ? (isVerySmall ? 72 : isSmallScreen ? 80 : 88) : (isVerySmall ? 56 : isSmallScreen ? 60 : 64),
+          paddingHorizontal: isVerySmall ? 2 : isSmallScreen ? 4 : 16,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
@@ -48,14 +48,15 @@ export default function TabLayout() {
         tabBarActiveTintColor: "#3b82f6",
         tabBarInactiveTintColor: "#64748b",
         tabBarLabelStyle: {
-          fontSize: isVerySmall ? 8 : isSmallScreen ? 9 : 11,
+          fontSize: isVerySmall ? 9 : isSmallScreen ? 10 : 11,
           fontWeight: "600",
-          marginTop: isVerySmall ? 0 : isSmallScreen ? 1 : 2,
-          lineHeight: isVerySmall ? 10 : isSmallScreen ? 12 : 14,
+          marginTop: isVerySmall ? 2 : isSmallScreen ? 2 : 2,
+          lineHeight: isVerySmall ? 12 : isSmallScreen ? 13 : 14,
+          paddingBottom: 2,
         },
         tabBarItemStyle: {
-          paddingHorizontal: isVerySmall ? 0 : isSmallScreen ? 1 : 4,
-          minWidth: isVerySmall ? 60 : isSmallScreen ? 70 : undefined,
+          paddingHorizontal: isVerySmall ? 0 : isSmallScreen ? 2 : 4,
+          gap: isVerySmall ? 2 : 4,
         },
         tabBarAllowFontScaling: false,
       }}
@@ -70,7 +71,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="adventures"
         options={{
-          title: isVerySmall ? "Trip" : isSmallScreen ? "Trips" : "Adventures",
+          title: isVerySmall ? "Trips" : isSmallScreen ? "Trips" : "Adventures",
           tabBarIcon: ({ focused }) => <TabIcon icon="🌍" focused={focused} />,
         }}
       />
@@ -84,7 +85,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: isVerySmall ? "Set" : isSmallScreen ? "Config" : "Settings",
+          title: isVerySmall ? "Settings" : isSmallScreen ? "Settings" : "Settings",
           tabBarIcon: ({ focused }) => <TabIcon icon="⚙️" focused={focused} />,
         }}
       />
