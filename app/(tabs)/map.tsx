@@ -12,8 +12,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { useAdventures } from "../../hooks/useAdventures";
 import GradientBackground from "../../components/ui/GradientBackground";
-import MapViewModern from "../../components/MapViewModern";
 import { router } from "expo-router";
+
+// Platform-specific import
+const MapViewModern = Platform.select({
+  web: () => require("../../components/MapViewModern.web").default,
+  default: () => require("../../components/MapViewModernNative").default,
+})();
 
 export default function MapTab() {
   const { width } = useWindowDimensions();
