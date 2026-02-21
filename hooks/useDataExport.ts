@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { Share, Platform } from "react-native";
-import * as FileSystem from "expo-file-system";
 import { storageService } from "../services/storageService";
 
 export function useDataExport() {
@@ -28,17 +27,20 @@ export function useDataExport() {
         URL.revokeObjectURL(url);
       } else {
         // Native: Share or save to file
+        const FileSystem = await import("expo-file-system");
         const fileName = `travel-log-backup-${new Date().toISOString().split("T")[0]}.json`;
-        const docDir = (FileSystem as any).documentDirectory as string;
-        const filePath = `${docDir}${fileName}`;
+        const docDir = FileSystem.documentDirectory;
         
-        await FileSystem.writeAsStringAsync(filePath, jsonData);
-        
-        await Share.share({
-          title: "Travel Log Backup",
-          message: "Here's your Travel Log backup",
-          url: filePath,
-        });
+        if (docDir) {
+          const filePath = `${docDir}${fileName}`;
+          await FileSystem.writeAsStringAsync(filePath, jsonData);
+          
+          await Share.share({
+            title: "Travel Log Backup",
+            message: "Here's your Travel Log backup",
+            url: filePath,
+          });
+        }
       }
 
       return { success: true };
