@@ -495,6 +495,42 @@ export default function SettingsTab() {
                 thumbColor="#ffffff"
               />
             </SettingRow>
+
+            <SettingRow
+              label="Default View"
+              description="Starting view when opening the app"
+            >
+              <View style={styles.segmentedControl}>
+                <Pressable
+                  style={[
+                    styles.segmentButton,
+                    settings.defaultView === "map" && styles.segmentButtonActive,
+                  ]}
+                  onPress={() => updateSettings({ defaultView: "map" })}
+                >
+                  <Text style={[
+                    styles.segmentButtonText,
+                    settings.defaultView === "map" && styles.segmentButtonTextActive,
+                  ]}>
+                    Map
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.segmentButton,
+                    settings.defaultView === "timeline" && styles.segmentButtonActive,
+                  ]}
+                  onPress={() => updateSettings({ defaultView: "timeline" })}
+                >
+                  <Text style={[
+                    styles.segmentButtonText,
+                    settings.defaultView === "timeline" && styles.segmentButtonTextActive,
+                  ]}>
+                    Timeline
+                  </Text>
+                </Pressable>
+              </View>
+            </SettingRow>
           </SettingsSection>
 
           <SettingsSection title="Data Management" icon="💾" id="data">
@@ -838,6 +874,28 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     minWidth: 50,
     textAlign: "center",
+  },
+  segmentedControl: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 10,
+    padding: 4,
+  },
+  segmentButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  segmentButtonActive: {
+    backgroundColor: "#3b82f6",
+  },
+  segmentButtonText: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  segmentButtonTextActive: {
+    color: "#ffffff",
   },
   actionButton: {
     flexDirection: "row",
