@@ -27,13 +27,12 @@ export function useDataExport() {
         URL.revokeObjectURL(url);
       } else {
         // Native: Share or save to file
-        const FileSystem = await import("expo-file-system");
+        const { documentDirectory, writeAsStringAsync } = await import("expo-file-system");
         const fileName = `travel-log-backup-${new Date().toISOString().split("T")[0]}.json`;
-        const docDir = FileSystem.documentDirectory;
         
-        if (docDir) {
-          const filePath = `${docDir}${fileName}`;
-          await FileSystem.writeAsStringAsync(filePath, jsonData);
+        if (documentDirectory) {
+          const filePath = `${documentDirectory}${fileName}`;
+          await writeAsStringAsync(filePath, jsonData);
           
           await Share.share({
             title: "Travel Log Backup",
