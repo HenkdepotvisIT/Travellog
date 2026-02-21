@@ -92,8 +92,8 @@ CREATE TABLE IF NOT EXISTS sync_status (
 -- AI Configuration
 CREATE TABLE IF NOT EXISTS ai_config (
   id INTEGER PRIMARY KEY DEFAULT 1,
-  provider VARCHAR(50) DEFAULT 'gemini',
-  model VARCHAR(100) DEFAULT 'gemini-1.5-flash',
+  provider VARCHAR(50) DEFAULT 'anthropic',
+  model VARCHAR(100) DEFAULT 'claude-haiku-4-5-20251001',
   auto_generate BOOLEAN DEFAULT FALSE,
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS ai_config (
 -- Insert default records
 INSERT INTO connection (id, is_connected) VALUES (1, FALSE) ON CONFLICT (id) DO NOTHING;
 INSERT INTO sync_status (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
-INSERT INTO ai_config (id, provider, model) VALUES (1, 'gemini', 'gemini-1.5-flash') ON CONFLICT (id) DO NOTHING;
+INSERT INTO ai_config (id, provider, model) VALUES (1, 'anthropic', 'claude-haiku-4-5-20251001') ON CONFLICT (id) DO NOTHING;
 
 -- Insert default settings
 INSERT INTO settings (key, value) VALUES 

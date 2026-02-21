@@ -611,7 +611,9 @@ export default function SettingsTab() {
                 <View style={styles.aboutLinkRow}>
                   <Text style={styles.aboutLinkLabel}>AI Provider:</Text>
                   <Text style={styles.aboutLinkValue}>
-                    {aiConfig.isConfigured ? "Google Gemini ✅" : "Not configured"}
+                    {aiConfig.isConfigured
+                      ? `${aiConfig.provider === "anthropic" ? "Anthropic Claude" : aiConfig.provider === "gemini" ? "Google Gemini" : "OpenAI"} ✅`
+                      : "Not configured"}
                   </Text>
                 </View>
                 <View style={styles.aboutLinkRow}>
@@ -624,8 +626,8 @@ export default function SettingsTab() {
                 <View style={styles.aiHint}>
                   <Text style={styles.aiHintTitle}>💡 Enable AI Features</Text>
                   <Text style={styles.aiHintText}>
-                    Set GEMINI_API_KEY in your environment to enable AI-powered summaries and highlights.
-                    Get a free key at aistudio.google.com
+                    Set ANTHROPIC_API_KEY in your environment to enable AI-powered summaries and highlights.
+                    Get your API key at console.anthropic.com
                   </Text>
                 </View>
               )}

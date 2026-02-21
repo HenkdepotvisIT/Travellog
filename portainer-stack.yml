@@ -1,25 +1,37 @@
+# Travel Log - Portainer Stack
+#
+# Deploy this in Portainer under Stacks > Add Stack > Web editor
+#
+# REQUIRED: Set the following environment variables in Portainer's
+# "Environment variables" section before deploying:
+#
+#   ANTHROPIC_API_KEY - Your Anthropic API key (https://console.anthropic.com/)
+#   POSTGRES_PASSWORD - A strong password for the database (e.g. changeme123)
+#
+# OPTIONAL:
+#   APP_PORT          - Host port to expose the app on (default: 3000)
+#   GEMINI_API_KEY    - Google Gemini API key (alternative AI provider)
+#   OPENAI_API_KEY    - OpenAI API key (alternative AI provider)
+
 version: '3.8'
 
 services:
   travel-log:
-    build: .
+    image: ghcr.io/henkdepotvisit/travellog:latest
     container_name: travel-log
     restart: unless-stopped
     ports:
       - "${APP_PORT:-3000}:3000"
-    volumes:
-      - travel_log_data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3000
       - DATA_DIR=/app/data
       - DATABASE_URL=postgresql://travellog:${POSTGRES_PASSWORD:-travellog}@travel-log-db:5432/travellog
-      # Google Gemini API (Recommended - free tier available)
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      # Google Gemini (Alternative)
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      # OpenAI (Alternative)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - travel_log_data:/app/data
     networks:
       - travel-log-net
     depends_on:
@@ -42,7 +54,6 @@ services:
       - POSTGRES_DB=travellog
     volumes:
       - travel_log_postgres:/var/lib/postgresql/data
-      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - travel-log-net
     healthcheck:
