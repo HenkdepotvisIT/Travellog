@@ -1,17 +1,8 @@
-import { View, Text, Pressable, StyleSheet, Dimensions, Platform } from "react-native";
+import { View, Text, Pressable, StyleSheet, Dimensions } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
-import { useEffect } from "react";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { useEffect, useRef, useState } from "react";
 import { Adventure } from "../types";
 
 const { width, height } = Dimensions.get("window");
@@ -21,50 +12,219 @@ interface MapViewModernProps {
   onAdventurePress: (id: string) => void;
 }
 
-// Convert lat/lng to x/y position on the map using Web Mercator projection
-function latLngToPosition(lat: number, lng: number, mapWidth: number, mapHeight: number) {
-  // Clamp latitude to avoid infinity at poles
-  const clampedLat = Math.max(-85, Math.min(85, lat));
-  
-  // Convert longitude to x (simple linear mapping)
-  const x = ((lng + 180) / 360) * mapWidth;
-  
-  // Convert latitude to y using Mercator projection
-  const latRad = (clampedLat * Math.PI) / 180;
-  const mercatorY = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
-  
-  // Map mercator Y to pixel coordinates
-  // Mercator Y ranges from about -3.14 to 3.14 for latitudes -85 to 85
-  const maxMercatorY = Math.log(Math.tan(Math.PI / 4 + (85 * Math.PI / 180) / 2));
-  const y = mapHeight / 2 - (mercatorY / maxMercatorY) * (mapHeight / 2);
-  
-  return { x, y };
-}
-
-function PulsingDot() {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(0.6);
+// Leaflet map component that only renders on client
+function LeafletMap({ adventures, onAdventurePress }: MapViewModernProps) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    scale.value = withRepeat(
-      withTiming(1.5, { duration: 2000, easing: Easing.out(Easing.ease) }),
-      -1,
-      true
-    );
-    opacity.value = withRepeat(
-      withTiming(0, { duration: 2000, easing: Easing.out(Easing.ease) }),
-      -1,
-      true
-    );
-  }, []);
+    // Only run on client side
+    if (typeof window === "undefined" || !mapRef.current) return;
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+    // Dynamically import Leaflet to avoid SSR issues
+    const initMap = async () => {
+      const L = (await import("leaflet")).default;
+      
+      // Import Leaflet CSS
+      if (!document.getElementById("leaflet-css")) {
+        const link = document.createElement("link");
+        link.id = "leaflet-css";
+        link.rel = "stylesheet";
+        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        document.head.appendChild(link);
+      }
+
+      // Wait for CSS to load
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Don't reinitialize if map already exists
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+      }
+
+      // Calculate bounds
+      if (adventures.length === 0) {
+        const map = L.map(mapRef.current!, {
+          center: [20, 0],
+          zoom: 2,
+          zoomControl: true,
+          attributionControl: true,
+        });
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19,
+        }).addTo(map);
+
+        mapInstanceRef.current = map;
+        setIsLoaded(true);
+        return;
+      }
+
+      const lats = adventures.map((a) => a.coordinates.lat);
+      const lngs = adventures.map((a) => a.coordinates.lng);
+      const bounds = L.latLngBounds(
+        [Math.min(...lats) - 5, Math.min(...lngs) - 10],
+        [Math.max(...lats) + 5, Math.max(...lngs) + 10]
+      );
+
+      const map = L.map(mapRef.current!, {
+        zoomControl: true,
+        attributionControl: true,
+      });
+
+      // Fit bounds with padding
+      map.fitBounds(bounds, { padding: [50, 50] });
+
+      // Add tile layer (OpenStreetMap - free, no API key needed)
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+      }).addTo(map);
+
+      // Custom marker icon
+      const createCustomIcon = (isHovered: boolean = false) => {
+        return L.divIcon({
+          className: "custom-marker",
+          html: `
+            <div style="
+              width: 36px;
+              height: 36px;
+              background: linear-gradient(135deg, #3b82f6, #2563eb);
+              border-radius: 50%;
+              border: 3px solid white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+              cursor: pointer;
+              transform: scale(${isHovered ? 1.2 : 1});
+              transition: transform 0.2s ease;
+            ">
+              <span style="font-size: 16px;">📍</span>
+            </div>
+          `,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -20],
+        });
+      };
+
+      // Add markers for each adventure
+      adventures.forEach((adventure) => {
+        const marker = L.marker([adventure.coordinates.lat, adventure.coordinates.lng], {
+          icon: createCustomIcon(),
+        }).addTo(map);
+
+        // Create popup content
+        const popupContent = `
+          <div style="
+            min-width: 200px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          ">
+            <h3 style="
+              margin: 0 0 8px 0;
+              font-size: 16px;
+              font-weight: 600;
+              color: #1e293b;
+            ">${adventure.title}</h3>
+            <p style="
+              margin: 0 0 4px 0;
+              font-size: 13px;
+              color: #64748b;
+            ">📍 ${adventure.location}</p>
+            <p style="
+              margin: 0 0 8px 0;
+              font-size: 12px;
+              color: #94a3b8;
+            ">${adventure.startDate} - ${adventure.endDate}</p>
+            <div style="
+              display: flex;
+              gap: 12px;
+              font-size: 12px;
+              color: #475569;
+            ">
+              <span>📸 ${adventure.mediaCount}</span>
+              <span>📅 ${adventure.duration}d</span>
+              <span>🗺️ ${adventure.distance}km</span>
+            </div>
+            <button 
+              onclick="window.dispatchEvent(new CustomEvent('adventure-click', { detail: '${adventure.id}' }))"
+              style="
+                margin-top: 12px;
+                width: 100%;
+                padding: 8px 16px;
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+              "
+            >View Adventure →</button>
+          </div>
+        `;
+
+        marker.bindPopup(popupContent, {
+          closeButton: true,
+          className: "custom-popup",
+        });
+
+        // Hover effects
+        marker.on("mouseover", () => {
+          marker.setIcon(createCustomIcon(true));
+        });
+        marker.on("mouseout", () => {
+          marker.setIcon(createCustomIcon(false));
+        });
+      });
+
+      // Draw route lines for each adventure
+      adventures.forEach((adventure) => {
+        if (adventure.route && adventure.route.length > 1) {
+          const routeCoords = adventure.route.map((point) => [point.lat, point.lng] as [number, number]);
+          L.polyline(routeCoords, {
+            color: "#3b82f6",
+            weight: 3,
+            opacity: 0.7,
+            dashArray: "10, 10",
+          }).addTo(map);
+        }
+      });
+
+      mapInstanceRef.current = map;
+      setIsLoaded(true);
+    };
+
+    initMap();
+
+    // Listen for adventure click events from popup buttons
+    const handleAdventureClick = (e: CustomEvent) => {
+      onAdventurePress(e.detail);
+    };
+    window.addEventListener("adventure-click", handleAdventureClick as EventListener);
+
+    return () => {
+      window.removeEventListener("adventure-click", handleAdventureClick as EventListener);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [adventures, onAdventurePress]);
 
   return (
-    <Animated.View style={[styles.pulsingRing, animatedStyle]} />
+    <div
+      ref={mapRef}
+      style={{
+        width: "100%",
+        height: "100%",
+        borderRadius: 28,
+        overflow: "hidden",
+      }}
+    />
   );
 }
 
@@ -75,88 +235,12 @@ export default function MapViewModern({
   const legendAnimation = FadeIn.delay(300).duration(300);
   const listAnimation = FadeIn.delay(400).duration(300);
 
-  // Calculate map dimensions (accounting for margins)
-  const mapWidth = width - 40;
-  const mapHeight = height * 0.55;
-
   return (
     <View style={styles.container}>
-      {/* Map Background */}
-      <LinearGradient
-        colors={["#e0f2fe", "#bae6fd", "#7dd3fc"]}
-        style={styles.mapBackground}
-      >
-        {/* Grid Lines */}
-        <View style={styles.gridContainer}>
-          {[...Array(10)].map((_, i) => (
-            <View
-              key={`h-${i}`}
-              style={[styles.gridLine, styles.horizontalLine, { top: `${i * 10}%` }]}
-            />
-          ))}
-          {[...Array(10)].map((_, i) => (
-            <View
-              key={`v-${i}`}
-              style={[styles.gridLine, styles.verticalLine, { left: `${i * 10}%` }]}
-            />
-          ))}
-        </View>
-
-        {/* Globe Emoji as placeholder */}
-        <Animated.Text
-          entering={FadeIn.delay(200).duration(500)}
-          style={styles.globeEmoji}
-        >
-          🌍
-        </Animated.Text>
-
-        {/* Adventure Pins */}
-        {adventures.map((adventure, index) => {
-          const { x, y } = latLngToPosition(
-            adventure.coordinates.lat,
-            adventure.coordinates.lng,
-            mapWidth,
-            mapHeight
-          );
-
-          // Ensure pins stay within bounds with some padding
-          const clampedX = Math.max(20, Math.min(x, mapWidth - 20));
-          const clampedY = Math.max(40, Math.min(y, mapHeight - 80));
-
-          const pinAnimation = FadeIn.delay(200 + index * 50).duration(300);
-
-          return (
-            <Animated.View
-              key={adventure.id}
-              entering={pinAnimation}
-              style={[
-                styles.pinContainer,
-                {
-                  left: clampedX - 16,
-                  top: clampedY - 16,
-                },
-              ]}
-            >
-              <Pressable onPress={() => onAdventurePress(adventure.id)}>
-                <PulsingDot />
-                <View style={styles.pinDot}>
-                  <LinearGradient
-                    colors={["#3b82f6", "#2563eb"]}
-                    style={styles.pinGradient}
-                  >
-                    <Text style={styles.pinEmoji}>📍</Text>
-                  </LinearGradient>
-                </View>
-                <View style={styles.pinLabel}>
-                  <Text style={styles.pinLabelText} numberOfLines={1}>
-                    {adventure.location}
-                  </Text>
-                </View>
-              </Pressable>
-            </Animated.View>
-          );
-        })}
-      </LinearGradient>
+      {/* Interactive Leaflet Map */}
+      <View style={styles.mapContainer}>
+        <LeafletMap adventures={adventures} onAdventurePress={onAdventurePress} />
+      </View>
 
       {/* Legend Card */}
       <Animated.View
@@ -170,7 +254,7 @@ export default function MapViewModern({
           >
             <Text style={styles.legendTitle}>🗺️ Your Adventures</Text>
             <Text style={styles.legendSubtitle}>
-              {adventures.length} trips across the globe
+              {adventures.length} trips • Click pins for details
             </Text>
           </LinearGradient>
         </BlurView>
@@ -224,86 +308,12 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 28,
     overflow: "hidden",
-  },
-  mapBackground: {
-    flex: 1,
     position: "relative",
   },
-  gridContainer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  gridLine: {
-    position: "absolute",
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
-  },
-  horizontalLine: {
-    left: 0,
-    right: 0,
-    height: 1,
-  },
-  verticalLine: {
-    top: 0,
-    bottom: 0,
-    width: 1,
-  },
-  globeEmoji: {
-    position: "absolute",
-    fontSize: 150,
-    opacity: 0.15,
-    top: "30%",
-    left: "50%",
-    marginLeft: -75,
-    marginTop: -75,
-  },
-  pinContainer: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 10,
-  },
-  pulsingRing: {
-    position: "absolute",
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#3b82f6",
-    top: -9,
-    left: -9,
-  },
-  pinDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  pinGradient: {
+  mapContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  pinEmoji: {
-    fontSize: 16,
-  },
-  pinLabel: {
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: 4,
-    maxWidth: 100,
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.1)",
-  },
-  pinLabelText: {
-    color: "#1e293b",
-    fontSize: 10,
-    fontWeight: "600",
-    textAlign: "center",
+    borderRadius: 28,
+    overflow: "hidden",
   },
   legendContainer: {
     position: "absolute",
@@ -311,6 +321,7 @@ const styles = StyleSheet.create({
     left: 16,
     borderRadius: 16,
     overflow: "hidden",
+    zIndex: 1000,
   },
   legendBlur: {
     borderRadius: 16,
@@ -336,6 +347,7 @@ const styles = StyleSheet.create({
     right: 16,
     borderRadius: 20,
     overflow: "hidden",
+    zIndex: 1000,
   },
   listBlur: {
     borderRadius: 20,
@@ -386,5 +398,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.1)",
     pointerEvents: "none",
+    zIndex: 999,
   },
 });
