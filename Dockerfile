@@ -3,11 +3,16 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Suppress Expo telemetry and ensure non-interactive CI mode
+ENV CI=1
+ENV EXPO_NO_TELEMETRY=1
+ENV NODE_ENV=development
+
 # Copy package files
 COPY package*.json ./
 COPY server/package*.json ./server/
 
-# Install dependencies
+# Install all dependencies (including devDependencies needed for the build)
 RUN npm ci --legacy-peer-deps
 RUN cd server && npm ci
 

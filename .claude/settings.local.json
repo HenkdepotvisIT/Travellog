@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(where:*)",
+      "Bash(tsc:*)",
+      "Bash(dir:*)",
+      "Bash(ls:*)",
+      "Bash(git -C \"C:/Dev/Travellog\" diff HEAD)",
+      "Bash(git --git-dir=\"C:/Dev/Travellog/.git\" --work-tree=\"C:/Dev/Travellog\" diff HEAD)",
+      "Bash(git --git-dir=\"C:/Dev/Travellog/.git\" --work-tree=\"C:/Dev/Travellog\" status)",
+      "Bash(git --git-dir=\"C:/Dev/Travellog/.git\" --work-tree=\"C:/Dev/Travellog\" diff HEAD -- \"app/_layout.tsx\")",
+      "Bash(git --git-dir=\"C:/Dev/Travellog/.git\" --work-tree=\"C:/Dev/Travellog\" diff HEAD -- \"components/ui/GlassCard.tsx\" \"components/ui/GradientBackground.tsx\" \"services/immichApi.ts\" \"server/index.js\" \"Dockerfile\")",
+      "Bash(git --git-dir=\"C:/Dev/Travellog/.git\" --work-tree=\"C:/Dev/Travellog\" diff HEAD -- \"app/\\(tabs\\)/settings.tsx\")",
+      "Bash(git --git-dir=\"C:/Dev/Travellog/.git\" --work-tree=\"C:/Dev/Travellog\" show \"HEAD:app/\\(tabs\\)/settings.tsx\")",
+      "Bash(node --version:*)",
+      "Bash(npm:*)",
+      "Bash(test:*)",
+      "Bash(node -e:*)"
+    ]
+  }
+}

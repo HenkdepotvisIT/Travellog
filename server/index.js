@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
+const https = require('https');
 const db = require('./db');
 const ai = require('./ai');
 
@@ -745,6 +747,144 @@ app.delete('/api/data', async (req, res) => {
   } catch (error) {
     console.error('Failed to clear data:', error);
     res.status(500).json({ error: 'Failed to clear data' });
+  }
+});
+
+// ============ Immich Proxy ============
+// Reads credentials from DB so the browser never needs to send auth headers.
+// This lets the app work cleanly behind a Cloudflare tunnel without re-auth.
+
+async function getImmichCredentials() {
+  const connResult = await db.query('SELECT server_url, api_key FROM connection WHERE id = 1');
+  const conn = connResult.rows[0];
+  if (!conn || !conn.server_url || !conn.api_key) {
+    return null;
+  }
+  const headersResult = await db.query(
+    'SELECT key, value FROM proxy_headers WHERE enabled = TRUE'
+  );
+  const headers = {
+    'x-api-key': conn.api_key,
+    'Content-Type': 'application/json',
+  };
+  headersResult.rows.forEach(h => {
+    if (h.key && h.value) headers[h.key] = h.value;
+  });
+  return { baseUrl: conn.server_url.replace(/\/$/, ''), headers };
+}
+
+// Forward a request to Immich and stream the response back (used for images)
+function proxyStream(req, res, targetUrl, headers) {
+  const parsedUrl = new URL(targetUrl);
+  const transport = parsedUrl.protocol === 'https:' ? https : http;
+  const options = {
+    hostname: parsedUrl.hostname,
+    port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+    path: parsedUrl.pathname + parsedUrl.search,
+    method: req.method,
+    headers,
+  };
+  const proxyReq = transport.request(options, (proxyRes) => {
+    res.status(proxyRes.statusCode);
+    // Forward content-type and other relevant headers
+    ['content-type', 'content-length', 'cache-control', 'etag'].forEach(h => {
+      if (proxyRes.headers[h]) res.setHeader(h, proxyRes.headers[h]);
+    });
+    proxyRes.pipe(res);
+  });
+  proxyReq.on('error', (err) => {
+    console.error('Immich proxy stream error:', err.message);
+    if (!res.headersSent) res.status(502).json({ error: 'Immich proxy error' });
+  });
+  proxyReq.end();
+}
+
+// Ping / connection test
+app.get('/api/immich/ping', async (req, res) => {
+  try {
+    const creds = await getImmichCredentials();
+    if (!creds) return res.status(503).json({ error: 'Immich not configured' });
+    const response = await fetch(`${creds.baseUrl}/api/server-info/ping`, { headers: creds.headers });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    console.error('Immich ping proxy error:', err.message);
+    res.status(502).json({ error: 'Immich proxy error' });
+  }
+});
+
+// Search assets (POST with body)
+app.post('/api/immich/search', async (req, res) => {
+  try {
+    const creds = await getImmichCredentials();
+    if (!creds) return res.status(503).json({ error: 'Immich not configured' });
+    const response = await fetch(`${creds.baseUrl}/api/search/metadata`, {
+      method: 'POST',
+      headers: creds.headers,
+      body: JSON.stringify(req.body),
+    });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    console.error('Immich search proxy error:', err.message);
+    res.status(502).json({ error: 'Immich proxy error' });
+  }
+});
+
+// List assets (GET, legacy endpoint)
+app.get('/api/immich/assets', async (req, res) => {
+  try {
+    const creds = await getImmichCredentials();
+    if (!creds) return res.status(503).json({ error: 'Immich not configured' });
+    const qs = new URLSearchParams(req.query).toString();
+    const url = `${creds.baseUrl}/api/asset${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers: creds.headers });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    console.error('Immich assets proxy error:', err.message);
+    res.status(502).json({ error: 'Immich proxy error' });
+  }
+});
+
+// Server stats
+app.get('/api/immich/stats', async (req, res) => {
+  try {
+    const creds = await getImmichCredentials();
+    if (!creds) return res.status(503).json({ error: 'Immich not configured' });
+    const response = await fetch(`${creds.baseUrl}/api/server-info/statistics`, { headers: creds.headers });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    console.error('Immich stats proxy error:', err.message);
+    res.status(502).json({ error: 'Immich proxy error' });
+  }
+});
+
+// Thumbnail image (streamed)
+app.get('/api/immich/thumbnail/:id', async (req, res) => {
+  try {
+    const creds = await getImmichCredentials();
+    if (!creds) return res.status(503).json({ error: 'Immich not configured' });
+    const qs = new URLSearchParams(req.query).toString();
+    const targetUrl = `${creds.baseUrl}/api/asset/thumbnail/${req.params.id}${qs ? '?' + qs : ''}`;
+    proxyStream(req, res, targetUrl, creds.headers);
+  } catch (err) {
+    console.error('Immich thumbnail proxy error:', err.message);
+    res.status(502).json({ error: 'Immich proxy error' });
+  }
+});
+
+// Full photo (streamed)
+app.get('/api/immich/photo/:id', async (req, res) => {
+  try {
+    const creds = await getImmichCredentials();
+    if (!creds) return res.status(503).json({ error: 'Immich not configured' });
+    const targetUrl = `${creds.baseUrl}/api/asset/file/${req.params.id}`;
+    proxyStream(req, res, targetUrl, creds.headers);
+  } catch (err) {
+    console.error('Immich photo proxy error:', err.message);
+    res.status(502).json({ error: 'Immich proxy error' });
   }
 });
 

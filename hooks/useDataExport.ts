@@ -27,19 +27,16 @@ export function useDataExport() {
         URL.revokeObjectURL(url);
       } else {
         // Native: Share or save to file
-        const { documentDirectory, writeAsStringAsync } = await import("expo-file-system");
+        const { Paths, File } = await import("expo-file-system");
         const fileName = `travel-log-backup-${new Date().toISOString().split("T")[0]}.json`;
-        
-        if (documentDirectory) {
-          const filePath = `${documentDirectory}${fileName}`;
-          await writeAsStringAsync(filePath, jsonData);
-          
-          await Share.share({
-            title: "Travel Log Backup",
-            message: "Here's your Travel Log backup",
-            url: filePath,
-          });
-        }
+        const file = new File(Paths.document, fileName);
+        file.write(jsonData);
+
+        await Share.share({
+          title: "Travel Log Backup",
+          message: "Here's your Travel Log backup",
+          url: file.uri,
+        });
       }
 
       return { success: true };

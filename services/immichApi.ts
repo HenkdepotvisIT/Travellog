@@ -13,23 +13,13 @@ class ImmichApi {
     this.proxyHeaders = proxyHeaders;
 
     if (baseUrl && apiKey) {
-      // Build custom headers from proxy headers
-      const customHeaders: Record<string, string> = {
-        "x-api-key": apiKey,
-        "Content-Type": "application/json",
-      };
-
-      // Add enabled proxy headers
-      proxyHeaders
-        .filter((h) => h.enabled && h.key && h.value)
-        .forEach((h) => {
-          customHeaders[h.key] = h.value;
-        });
-
+      // All Immich requests go through the server proxy at /api/immich.
+      // The server reads credentials + proxy headers from the DB and forwards
+      // them to Immich, so the browser never sends auth headers directly and
+      // doesn't get challenged by Cloudflare Access.
       this.client = axios.create({
-        baseURL: `${this.baseUrl}/api`,
-        headers: customHeaders,
-        timeout: 60000, // Increased timeout for large libraries
+        baseURL: "/api/immich",
+        timeout: 60000,
       });
     } else {
       this.client = null;
@@ -55,7 +45,7 @@ class ImmichApi {
     if (!this.client) return false;
 
     try {
-      const response = await this.client.get("/server-info/ping");
+      const response = await this.client.get("/ping");
       return response.data?.res === "pong";
     } catch (error) {
       console.error("Connection validation failed:", error);
@@ -66,7 +56,8 @@ class ImmichApi {
   async getServerInfo(): Promise<any> {
     if (!this.client) throw new Error("Not configured");
 
-    const response = await this.client.get("/server-info/version");
+    // Not proxied individually; use ping as a substitute
+    const response = await this.client.get("/ping");
     return response.data;
   }
 
@@ -74,7 +65,7 @@ class ImmichApi {
     if (!this.client) throw new Error("Not configured");
 
     try {
-      const response = await this.client.get("/server-info/statistics");
+      const response = await this.client.get("/stats");
       return {
         photos: response.data?.photos || 0,
         videos: response.data?.videos || 0,
@@ -107,8 +98,8 @@ class ImmichApi {
 
     while (hasMore) {
       try {
-        // Use the search endpoint for better pagination
-        const response = await this.client.post("/search/metadata", {
+        // Use the search endpoint for better pagination (proxied via /api/immich/search)
+        const response = await this.client.post("/search", {
           page,
           size: pageSize,
           order: "desc",
@@ -167,7 +158,7 @@ class ImmichApi {
 
     while (hasMore) {
       try {
-        const response = await this.client.get("/asset", {
+        const response = await this.client.get("/assets", {
           params: {
             page,
             size: pageSize,
@@ -236,40 +227,29 @@ class ImmichApi {
     return withLocation;
   }
 
-  // Get thumbnail URL - this is a LIVE reference, not a copy
+  // Get thumbnail URL - routed through the server proxy, no auth headers needed in browser
   getThumbnailUrl(assetId: string): string {
     if (!this.baseUrl || !this.apiKey) return "";
-    return `${this.baseUrl}/api/asset/thumbnail/${assetId}?format=WEBP&size=preview`;
+    return `/api/immich/thumbnail/${assetId}?format=WEBP&size=preview`;
   }
 
-  // Get full image URL - this is a LIVE reference, not a copy
+  // Get full image URL - routed through the server proxy
   getFullImageUrl(assetId: string): string {
     if (!this.baseUrl || !this.apiKey) return "";
-    return `${this.baseUrl}/api/asset/file/${assetId}`;
+    return `/api/immich/photo/${assetId}`;
   }
 
-  // Get image URL with API key for direct access
+  // Get image URL through server proxy (thumbnail or full)
   getAuthenticatedImageUrl(assetId: string, thumbnail: boolean = true): string {
     if (!this.baseUrl || !this.apiKey) return "";
-    const endpoint = thumbnail 
-      ? `/api/asset/thumbnail/${assetId}?format=WEBP&size=preview`
-      : `/api/asset/file/${assetId}`;
-    return `${this.baseUrl}${endpoint}`;
+    return thumbnail
+      ? `/api/immich/thumbnail/${assetId}?format=WEBP&size=preview`
+      : `/api/immich/photo/${assetId}`;
   }
 
-  // Get headers needed for authenticated image requests
+  // No auth headers needed from the browser — the server proxy handles all auth
   getAuthHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {
-      "x-api-key": this.apiKey,
-    };
-    
-    this.proxyHeaders
-      .filter((h) => h.enabled && h.key && h.value)
-      .forEach((h) => {
-        headers[h.key] = h.value;
-      });
-    
-    return headers;
+    return {};
   }
 
   getProxyHeaders(): ProxyHeader[] {

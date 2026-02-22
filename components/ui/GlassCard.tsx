@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import { View, StyleSheet, ViewStyle, Platform } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown, FadeInUp, FadeIn } from "react-native-reanimated";
 
 interface GlassCardProps {
-  children: React.ReactNode;
+  children: ReactNode;
   style?: ViewStyle;
   intensity?: number;
   delay?: number;

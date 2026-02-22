@@ -7,12 +7,12 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 
 const { width, height } = Dimensions.get("window");
 
 interface GradientBackgroundProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 function FloatingParticle({ 
