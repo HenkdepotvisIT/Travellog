@@ -1,0 +1,116 @@
+.button {
+  background-color: #8b5cf6;
+  padding: 10px 16px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.buttonCompact {
+  padding: 8px 12px;
+}
+
+.buttonTextCompact {
+  font-size: 16px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinnerSmall {
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 500px;
+  background-color: #1e293b;
+  border-radius: 24px 24px 0 0;
+  padding: 24px;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffffff;
+  margin: 0;
+}
+
+.closeButton {
+  color: #94a3b8;
+  font-size: 20px;
+  padding: 4px;
+}
+
+.styleList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.styleOption {
+  display: flex;
+  align-items: center;
+  background-color: #0f172a;
+  padding: 16px;
+  border-radius: 12px;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  color: #ffffff;
+  transition: background-color 0.2s;
+}
+
+.styleOption:hover {
+  background-color: #1e293b;
+}
+
+.styleIcon {
+  font-size: 24px;
+}
+
+.styleLabel {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 500;
+}

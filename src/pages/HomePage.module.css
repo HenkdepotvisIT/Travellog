@@ -1,0 +1,753 @@
+/* HomePage.module.css */
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== Container / Layout ===== */
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+}
+
+.scrollContainer {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.scrollContainer::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== Header ===== */
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 50px 20px 16px;
+  animation: fadeInDown 0.2s ease-out forwards;
+}
+
+.headerCompact {
+  padding: 40px 16px 12px;
+}
+
+.headerLeft {
+  flex: 1;
+}
+
+.greeting {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.greetingCompact {
+  font-size: 12px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.titleCompact {
+  font-size: 22px;
+}
+
+.headerRight {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+/* ===== Header Button ===== */
+.headerButtonWrapper {
+  animation: fadeIn 0.2s ease-out forwards;
+  opacity: 0;
+}
+
+.headerButtonPressable {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: transform 0.15s ease;
+}
+
+.headerButtonPressable:hover {
+  transform: scale(1.05);
+}
+
+.headerButtonPressable:active {
+  transform: scale(0.9);
+}
+
+.headerButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.headerButtonText {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ef4444;
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.badgeText {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* ===== Connection Status ===== */
+.statusContainer {
+  padding: 0 20px;
+  margin-bottom: 20px;
+  animation: fadeIn 0.3s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+.statusContainerCompact {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.statusRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.statusConnected {
+  background-color: #22c55e;
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.8);
+}
+
+.statusDisconnected {
+  background-color: #f59e0b;
+}
+
+.statusText {
+  font-size: 13px;
+  color: #475569;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusTextCompact {
+  font-size: 11px;
+}
+
+.lastSyncText {
+  font-size: 11px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* ===== Loading State ===== */
+.loadingContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loadingText {
+  color: #64748b;
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+/* ===== Error State ===== */
+.errorContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px;
+}
+
+.errorEmoji {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.errorText {
+  color: #64748b;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.retryButton {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.retryButton:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.retryButtonText {
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ===== Empty State ===== */
+.emptyContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px;
+}
+
+.emptyEmoji {
+  font-size: 60px;
+  margin-bottom: 16px;
+}
+
+.emptyTitle {
+  font-size: 20px;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.emptyText {
+  font-size: 14px;
+  color: #64748b;
+  text-align: center;
+  line-height: 20px;
+  margin-bottom: 24px;
+  padding: 0 16px;
+}
+
+.connectButton {
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  background: none;
+  transition: transform 0.15s ease;
+}
+
+.connectButton:hover {
+  transform: scale(1.02);
+}
+
+.connectButton:active {
+  transform: scale(0.98);
+}
+
+.connectButtonGradient {
+  padding: 14px 24px;
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+  border-radius: 12px;
+}
+
+.connectButtonText {
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.storageNote {
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* ===== Hero Stats Section ===== */
+.heroStatsSection {
+  display: flex;
+  flex-direction: row;
+  padding: 0 20px;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.heroStatsSectionCompact {
+  padding: 0 16px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* ===== Large Stat Card ===== */
+.largeStatCard {
+  flex: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+.largeStatCardBlur {
+  border-radius: 16px;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+}
+
+.largeStatCardGradient {
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+}
+
+.largeStatCardGradientCompact {
+  padding: 12px;
+}
+
+.largeStatContent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.largeStatContentCompact {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.largeStatIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.largeStatIconCompact {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  margin-right: 0;
+  margin-bottom: 8px;
+}
+
+.largeStatIconText {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.largeStatIconTextCompact {
+  font-size: 16px;
+}
+
+.largeStatText {
+  flex: 1;
+  min-width: 0;
+}
+
+.largeStatValue {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.largeStatValueCompact {
+  font-size: 20px;
+}
+
+.largeStatLabel {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.largeStatLabelCompact {
+  font-size: 11px;
+}
+
+.largeStatSubtitle {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.largeStatSubtitleCompact {
+  font-size: 10px;
+}
+
+/* ===== Stats Grid ===== */
+.statsGrid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding: 0 20px;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.statsGridCompact {
+  padding: 0 16px;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.statCardWrapper {
+  width: calc(50% - 5px);
+}
+
+.statCardWrapperCompact {
+  width: calc(50% - 4px);
+}
+
+/* ===== Stat Card ===== */
+.statCard {
+  flex: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+.statCardCompact {
+  border-radius: 12px;
+}
+
+.statCardBlur {
+  border-radius: 14px;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+}
+
+.statCardGradient {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+}
+
+.statCardGradientCompact {
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.statIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.statIconCompact {
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  margin-bottom: 6px;
+}
+
+.statIconText {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.statIconTextCompact {
+  font-size: 14px;
+}
+
+.statValue {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.statValueCompact {
+  font-size: 14px;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.statLabelCompact {
+  font-size: 10px;
+}
+
+.statSubtitle {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* ===== Records Section ===== */
+.recordsSection {
+  padding: 0 20px;
+  margin-bottom: 24px;
+  animation: fadeIn 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+.recordsSectionCompact {
+  padding: 0 16px;
+  margin-bottom: 20px;
+}
+
+.recordsTitle {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.recordsTitleCompact {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.recordsGrid {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.recordCard {
+  flex: 1;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.recordValue {
+  font-size: 22px;
+  font-weight: bold;
+  color: #f59e0b;
+  margin-bottom: 4px;
+}
+
+.recordValueCompact {
+  font-size: 18px;
+}
+
+.recordLabel {
+  font-size: 11px;
+  color: #64748b;
+  text-align: center;
+}
+
+.recordLabelCompact {
+  font-size: 10px;
+}
+
+/* ===== Adventures Section ===== */
+.adventuresSection {
+  margin-bottom: 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  margin-bottom: 16px;
+}
+
+.sectionHeaderCompact {
+  padding: 0 16px;
+  margin-bottom: 12px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.sectionTitleCompact {
+  font-size: 16px;
+}
+
+.seeAllButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.seeAllText {
+  font-size: 13px;
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.adventuresScroll {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  padding: 0 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.adventuresScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.adventureCardWrapper {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  width: 80vw;
+  max-width: 400px;
+}
+
+.bottomSpacer {
+  height: 120px;
+}
+
+/* ===== Animation delay helpers ===== */
+.animDelay100 {
+  animation-delay: 0.1s;
+}
+
+.animDelay150 {
+  animation-delay: 0.15s;
+}
+
+.animDelay200 {
+  animation-delay: 0.2s;
+}
+
+.animDelay250 {
+  animation-delay: 0.25s;
+}
+
+.animDelay300 {
+  animation-delay: 0.3s;
+}
+
+.animDelay350 {
+  animation-delay: 0.35s;
+}
+
+.animDelay400 {
+  animation-delay: 0.4s;
+}
+
+.animDelay450 {
+  animation-delay: 0.45s;
+}
+
+.animDelay500 {
+  animation-delay: 0.5s;
+}
+
+.animDelay550 {
+  animation-delay: 0.55s;
+}
+
+/* ===== Responsive / Small screen via media query ===== */
+@media (max-width: 379px) {
+  .adventureCardWrapper {
+    width: 85vw;
+  }
+}

@@ -1,0 +1,63 @@
+.container {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background-color: #f8fafc;
+  overflow: hidden;
+}
+
+.gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+}
+
+.orbContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  animation: orbFloat 15s ease-in-out infinite alternate;
+}
+
+.orbBlue {
+  width: 60vw;
+  height: 60vw;
+  background: rgba(59, 130, 246, 0.08);
+  left: -10%;
+  top: -10%;
+  animation-duration: 18s;
+}
+
+.orbPurple {
+  width: 50vw;
+  height: 50vw;
+  background: rgba(139, 92, 246, 0.06);
+  right: -10%;
+  bottom: 10%;
+  animation-duration: 22s;
+  animation-delay: -5s;
+}
+
+.orbCyan {
+  width: 40vw;
+  height: 40vw;
+  background: rgba(6, 182, 212, 0.05);
+  left: -5%;
+  bottom: -5%;
+  animation-duration: 20s;
+  animation-delay: -10s;
+}
+
+.content {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

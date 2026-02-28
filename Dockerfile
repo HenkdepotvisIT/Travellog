@@ -1,11 +1,9 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Suppress Expo telemetry and ensure non-interactive CI mode
 ENV CI=1
-ENV EXPO_NO_TELEMETRY=1
 ENV NODE_ENV=development
 
 # Copy package files
@@ -13,17 +11,17 @@ COPY package*.json ./
 COPY server/package*.json ./server/
 
 # Install all dependencies (including devDependencies needed for the build)
-RUN npm ci --legacy-peer-deps
+RUN npm ci
 RUN cd server && npm ci
 
 # Copy source files
 COPY . .
 
 # Build the web app
-RUN npm run build:web
+RUN npm run build
 
 # Production stage
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 

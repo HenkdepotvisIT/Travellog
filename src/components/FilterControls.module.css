@@ -1,0 +1,22 @@
+.container { margin-bottom: 8px; }
+.scrollContent { display: flex; gap: 8px; padding: 0 20px; overflow-x: auto; }
+.scrollContent::-webkit-scrollbar { display: none; }
+.filterButton { background-color: #1e293b; padding: 10px 16px; border-radius: 20px; color: #fff; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.filterButtonActive { background-color: #3b82f6; }
+.chip { background-color: #1e293b; padding: 10px 14px; border-radius: 20px; color: #94a3b8; font-size: 13px; white-space: nowrap; }
+.chipActive { background-color: #3b82f6; color: #fff; }
+.modalOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: flex-end; justify-content: center; z-index: 100; }
+.modalContent { width: 100%; max-width: 500px; background: #1e293b; border-radius: 24px 24px 0 0; padding: 24px; max-height: 80%; overflow-y: auto; }
+.modalHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.modalTitle { font-size: 20px; font-weight: bold; color: #fff; margin: 0; }
+.closeButton { color: #94a3b8; font-size: 20px; }
+.filterSection { margin-bottom: 24px; }
+.filterLabel { display: block; color: #94a3b8; font-size: 14px; margin-bottom: 12px; }
+.chipGrid { display: flex; flex-wrap: wrap; gap: 8px; }
+.modalChip { background: #0f172a; padding: 10px 14px; border-radius: 20px; color: #94a3b8; font-size: 13px; }
+.modalChipActive { background: #3b82f6; color: #fff; }
+.input { width: 100%; background: #0f172a; border-radius: 10px; padding: 14px; color: #fff; font-size: 16px; border: none; outline: none; }
+.input::placeholder { color: #64748b; }
+.modalActions { display: flex; gap: 12px; margin-top: 8px; }
+.clearButton { flex: 1; background: #334155; padding: 14px; border-radius: 10px; color: #fff; font-weight: 600; }
+.applyButton { flex: 1; background: #3b82f6; padding: 14px; border-radius: 10px; color: #fff; font-weight: 600; }

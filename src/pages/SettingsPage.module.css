@@ -1,0 +1,705 @@
+/* SettingsPage.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+}
+
+.header {
+  padding: 60px 24px 20px;
+}
+
+.headerTitle {
+  font-size: 32px;
+  font-weight: bold;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+}
+
+.content {
+  flex: 1;
+  padding: 0 20px;
+  overflow-y: auto;
+}
+
+/* Hide scrollbar but keep scrolling */
+.content::-webkit-scrollbar {
+  display: none;
+}
+
+.content {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.card {
+  background-color: rgba(255, 255, 255, 0.75);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.statusCardMargin {
+  margin-bottom: 16px;
+}
+
+.statusHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statusIndicator {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.statusDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  margin-right: 10px;
+}
+
+.statusConnected {
+  background-color: #22c55e;
+}
+
+.statusDisconnected {
+  background-color: #ef4444;
+}
+
+.statusText {
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.syncButton {
+  border-radius: 12px;
+  overflow: hidden;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.syncButton:hover {
+  opacity: 0.7;
+}
+
+.syncButton:disabled {
+  cursor: not-allowed;
+}
+
+.syncButtonGradient {
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: linear-gradient(
+    to bottom,
+    rgba(59, 130, 246, 0.3),
+    rgba(59, 130, 246, 0.1)
+  );
+}
+
+.syncButtonText {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* CSS spinner for ActivityIndicator replacement */
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinnerSmall {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.serverUrlText {
+  color: #64748b;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.lastSyncText {
+  color: #94a3b8;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.proxyBadge {
+  background-color: rgba(59, 130, 246, 0.1);
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-top: 12px;
+  align-self: flex-start;
+  display: inline-block;
+}
+
+.proxyBadgeText {
+  color: #3b82f6;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ─── SettingsSection ──────────────────────────────────────── */
+
+.section {
+  margin-bottom: 12px;
+}
+
+.sectionHeader {
+  border-radius: 14px;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+  font: inherit;
+}
+
+.sectionHeader:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.sectionHeader:active {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.sectionHeaderInner {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+}
+
+.sectionTitleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.sectionIcon {
+  font-size: 20px;
+  margin-right: 12px;
+}
+
+.sectionTitle {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.badge {
+  background-color: #3b82f6;
+  border-radius: 10px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badgeText {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sectionChevron {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.sectionContent {
+  margin-top: 4px;
+}
+
+/* ─── Input Groups ──────────────────────────────────────── */
+
+.inputGroup {
+  margin-bottom: 16px;
+}
+
+.inputLabel {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.input {
+  background-color: #f1f5f9;
+  border-radius: 10px;
+  padding: 14px;
+  color: #1e293b;
+  font-size: 15px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+}
+
+.input::placeholder {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+.input:focus {
+  border-color: #3b82f6;
+}
+
+.passwordContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #f1f5f9;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.passwordInput {
+  flex: 1;
+  padding: 14px;
+  color: #1e293b;
+  font-size: 15px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+}
+
+.passwordInput::placeholder {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+.showPasswordButton {
+  padding: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.showPasswordText {
+  font-size: 18px;
+}
+
+.inputHint {
+  color: #94a3b8;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* ─── Buttons ───────────────────────────────────────────── */
+
+.buttonRow {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.btn {
+  flex: 1;
+  padding: 13px 16px;
+  border-radius: 12px;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn:hover {
+  opacity: 0.85;
+}
+
+.btn:active {
+  opacity: 0.7;
+}
+
+.btnPrimary {
+  background-color: #3b82f6;
+}
+
+.btnSecondary {
+  background-color: #f1f5f9;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.btnDanger {
+  background-color: #ef4444;
+}
+
+.btnDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnText {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.btnSecondaryText {
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ─── Setting Rows ──────────────────────────────────────── */
+
+.settingRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.settingInfo {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.settingLabel {
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.settingDescription {
+  color: #94a3b8;
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+/* ─── Number Input ──────────────────────────────────────── */
+
+.numberInputContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #f1f5f9;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.numberButton {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background-color: #e2e8f0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.numberButton:hover {
+  background-color: #cbd5e1;
+}
+
+.numberButton:active {
+  background-color: #94a3b8;
+}
+
+.numberButtonText {
+  color: #1e293b;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.numberValue {
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* ─── Toggle Switch (CSS-only) ──────────────────────────── */
+
+.toggleLabel {
+  position: relative;
+  display: inline-block;
+  width: 51px;
+  height: 31px;
+  flex-shrink: 0;
+}
+
+.toggleLabel input[type="checkbox"] {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggleTrack {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 31px;
+  transition: background-color 0.25s ease;
+}
+
+.toggleLabel input[type="checkbox"]:checked + .toggleTrack {
+  background-color: #3b82f6;
+}
+
+.toggleTrack::before {
+  content: "";
+  position: absolute;
+  height: 27px;
+  width: 27px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.toggleLabel input[type="checkbox"]:checked + .toggleTrack::before {
+  transform: translateX(20px);
+}
+
+/* ─── Segmented Control ─────────────────────────────────── */
+
+.segmentedControl {
+  display: flex;
+  flex-direction: row;
+  background-color: #f1f5f9;
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.segmentButton {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.segmentButton:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.segmentButtonActive {
+  background-color: #3b82f6;
+}
+
+.segmentButtonActive:hover {
+  background-color: #3b82f6;
+}
+
+.segmentButtonText {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.segmentButtonTextActive {
+  color: #ffffff;
+}
+
+/* ─── Action Buttons ────────────────────────────────────── */
+
+.actionButton {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.actionButton:hover {
+  opacity: 0.85;
+}
+
+.actionButton:active {
+  opacity: 0.7;
+}
+
+.actionButtonDisabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.dangerActionButton {
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.actionButtonIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background-color: #e2e8f0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+
+.dangerIcon {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.actionIconText {
+  font-size: 20px;
+}
+
+.actionButtonContent {
+  flex: 1;
+}
+
+.actionButtonTitle {
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.actionButtonDescription {
+  color: #94a3b8;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.dangerText {
+  color: #ef4444;
+}
+
+/* ─── About Section ─────────────────────────────────────── */
+
+.aboutContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.appInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.appName {
+  color: #1e293b;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.appVersion {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.aboutDescription {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 22px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.aboutLinks {
+  width: 100%;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  padding: 14px;
+  box-sizing: border-box;
+}
+
+.aboutLinkRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.aboutLinkLabel {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.aboutLinkValue {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.aiHint {
+  width: 100%;
+  background-color: rgba(59, 130, 246, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 14px;
+  border-left: 3px solid #3b82f6;
+  box-sizing: border-box;
+}
+
+.aiHintTitle {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.aiHintText {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* ─── Bottom spacer ─────────────────────────────────────── */
+
+.bottomSpacer {
+  height: 100px;
+}

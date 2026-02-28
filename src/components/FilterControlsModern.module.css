@@ -1,0 +1,22 @@
+.container { margin-bottom: 8px; }
+.scrollContent { display: flex; gap: 10px; padding: 0 20px; overflow-x: auto; }
+.scrollContent::-webkit-scrollbar { display: none; }
+.filterButton { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); padding: 12px 18px; border-radius: 20px; color: #fff; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.chip { padding: 12px 18px; border-radius: 20px; font-size: 14px; font-weight: 500; white-space: nowrap; transition: transform 0.15s; }
+.chip:active { transform: scale(0.95); }
+.chipActive { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; font-weight: 600; }
+.chipInactive { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+.modalOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; justify-content: center; z-index: 100; }
+.modalContent { width: 100%; max-width: 500px; border-radius: 32px 32px 0 0; background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02)), rgba(15,23,42,0.95); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); border-bottom: none; padding: 12px 24px 24px; }
+.handle { width: 40px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 0 auto 20px; }
+.modalHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.modalTitle { font-size: 24px; font-weight: bold; color: #fff; margin: 0; }
+.closeButton { width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; }
+.filterSection { margin-bottom: 24px; }
+.filterLabel { display: block; color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.chipGrid { display: flex; flex-wrap: wrap; gap: 10px; }
+.input { width: 100%; padding: 16px; color: #fff; font-size: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; outline: none; }
+.input::placeholder { color: #64748b; }
+.modalActions { display: flex; gap: 12px; margin-top: 8px; }
+.clearButton { flex: 1; padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.1); color: #fff; font-weight: 600; font-size: 16px; }
+.applyButton { flex: 1; padding: 16px; border-radius: 16px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; font-weight: 600; font-size: 16px; }

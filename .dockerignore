@@ -1,8 +1,8 @@
 node_modules
-.expo
 dist
 .git
 .gitignore
+.claude
 *.md
 *.log
 .env.local

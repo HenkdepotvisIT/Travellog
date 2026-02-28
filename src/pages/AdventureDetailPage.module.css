@@ -1,0 +1,479 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background-color: #0f172a;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  background-color: #0f172a;
+  min-height: 100vh;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingText {
+  color: #94a3b8;
+  margin-top: 16px;
+}
+
+/* Error State */
+.errorContainer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #0f172a;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.errorText {
+  color: #ef4444;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.backButton {
+  background-color: #3b82f6;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.backButton:hover {
+  background-color: #2563eb;
+}
+
+.backButtonText {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Cover / Header */
+.coverContainer {
+  height: 280px;
+  position: relative;
+  overflow: hidden;
+}
+
+.coverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.coverOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.backButtonHeader {
+  position: absolute;
+  top: 50px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.backButtonHeader:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.backButtonIcon {
+  color: #ffffff;
+  font-size: 20px;
+}
+
+.coverContent {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+}
+
+.adventureTitle {
+  font-size: 28px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.adventureDates {
+  font-size: 14px;
+  color: #e2e8f0;
+  margin-bottom: 8px;
+}
+
+.locationBadge {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 16px;
+  display: inline-block;
+}
+
+.locationText {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+/* Stats Row */
+.statsRow {
+  display: flex;
+  flex-direction: row;
+  padding: 16px 20px;
+  gap: 12px;
+}
+
+/* Tab Navigation */
+.tabContainer {
+  display: flex;
+  flex-direction: row;
+  margin: 0 20px;
+  background-color: #1e293b;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 10px;
+  text-align: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+.tabActive {
+  background-color: #3b82f6;
+}
+
+.tabActive:hover {
+  background-color: #3b82f6;
+}
+
+.tabText {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.tabTextActive {
+  color: #ffffff;
+}
+
+/* Tab Content Area */
+.content {
+  flex: 1;
+  padding: 16px 20px 0;
+  overflow-y: auto;
+}
+
+/* Story Tab */
+.storyContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.aiSection {
+  background-color: #1e293b;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.aiSectionHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.aiSectionTitleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.aiSectionIcon {
+  font-size: 18px;
+}
+
+.aiSectionTitle {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.aiSummaryContainer {
+  background-color: #0f172a;
+  border-radius: 12px;
+  padding: 16px;
+  border-left: 4px solid #8b5cf6;
+}
+
+.aiSummaryText {
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.emptyAIState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+}
+
+.emptyAIText {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.emptyAISubtext {
+  color: #475569;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Highlights */
+.highlightsContainer {
+  background-color: #0f172a;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.highlightItem {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 8px;
+}
+
+.highlightBullet {
+  color: #8b5cf6;
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.highlightText {
+  color: #e2e8f0;
+  font-size: 14px;
+  flex: 1;
+}
+
+/* Narrative / Your Story */
+.narrativeSection {
+  background-color: #1e293b;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.storyHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.storyTitle {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.storyActions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.editButton {
+  padding: 8px 12px;
+  background-color: #334155;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.editButton:hover {
+  background-color: #475569;
+}
+
+.editButtonText {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.narrativeInput {
+  background-color: #0f172a;
+  border-radius: 12px;
+  padding: 16px;
+  color: #ffffff;
+  font-size: 16px;
+  min-height: 200px;
+  width: 100%;
+  border: none;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.narrativeInput::placeholder {
+  color: #64748b;
+}
+
+.saveButton {
+  background-color: #3b82f6;
+  padding: 14px 0;
+  border-radius: 10px;
+  text-align: center;
+  margin-top: 12px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.saveButton:hover {
+  background-color: #2563eb;
+}
+
+.saveButtonText {
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.narrativeText {
+  color: #94a3b8;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+/* Regenerate All */
+.regenerateAllContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.regenerateAllButton {
+  width: 100%;
+}
+
+.regenerateAllHint {
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* AI Warning */
+.aiWarning {
+  display: flex;
+  flex-direction: row;
+  background-color: #422006;
+  border-radius: 12px;
+  padding: 16px;
+  border-left: 4px solid #f59e0b;
+}
+
+.aiWarningIcon {
+  font-size: 20px;
+  margin-right: 12px;
+}
+
+.aiWarningContent {
+  flex: 1;
+}
+
+.aiWarningTitle {
+  color: #fbbf24;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.aiWarningText {
+  color: #fcd34d;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/* Bottom spacer */
+.bottomSpacer {
+  height: 100px;
+}
+
+/* Export Bar */
+.exportContainer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background-color: #0f172a;
+}
+
+.exportButton {
+  background-color: #3b82f6;
+  padding: 16px 0;
+  border-radius: 12px;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.exportButton:hover {
+  background-color: #2563eb;
+}
+
+.exportButtonText {
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 16px;
+}

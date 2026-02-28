@@ -1,0 +1,106 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+}
+
+/* Header */
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 50px 20px 16px;
+  animation: fadeIn 200ms ease-out;
+}
+
+.headerCompact {
+  padding: 40px 16px 12px;
+}
+
+.headerLeft {
+  flex: 1;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.titleCompact {
+  font-size: 24px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+}
+
+.subtitleCompact {
+  font-size: 12px;
+}
+
+/* Loading state */
+.loadingContainer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px;
+}
+
+.loadingEmoji {
+  font-size: 60px;
+  margin-bottom: 12px;
+}
+
+.loadingText {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}
+
+/* Empty state */
+.emptyContainer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px;
+}
+
+.emptyEmoji {
+  font-size: 60px;
+  margin-bottom: 16px;
+}
+
+.emptyTitle {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.emptyText {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+/* Fade-in animation (replaces react-native-reanimated FadeIn) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,78 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+}
+
+.button:active {
+  transform: scale(0.95);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button:disabled:active {
+  transform: none;
+}
+
+/* Variants */
+.primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb, #1d4ed8);
+}
+
+.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ghost {
+  background: transparent;
+}
+
+.danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626, #b91c1c);
+}
+
+/* Sizes */
+.sm {
+  padding: 10px 16px;
+}
+
+.md {
+  padding: 14px 24px;
+}
+
+.lg {
+  padding: 18px 32px;
+}
+
+/* Text */
+.text {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.sm .text {
+  font-size: 13px;
+}
+
+.lg .text {
+  font-size: 17px;
+}
+
+.ghost .text {
+  color: #94a3b8;
+}
+
+.icon {
+  font-size: 18px;
+}

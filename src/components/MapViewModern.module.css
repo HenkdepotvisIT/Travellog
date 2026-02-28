@@ -1,0 +1,15 @@
+.container { flex: 1; margin: 20px; border-radius: 28px; overflow: hidden; position: relative; border: 1px solid rgba(0,0,0,0.1); }
+.mapContainer { position: absolute; inset: 0; }
+.leafletMap { width: 100%; height: 100%; background: #e2e8f0; }
+.legendContainer { position: absolute; top: 16px; left: 16px; border-radius: 16px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 16px; z-index: 1000; animation: fadeIn 0.3s ease-out 0.3s both; }
+.legendTitle { color: #1e293b; font-size: 16px; font-weight: bold; margin: 0; }
+.legendSubtitle { color: #64748b; font-size: 12px; margin: 4px 0 0; }
+.listContainer { position: absolute; bottom: 16px; left: 16px; right: 16px; border-radius: 20px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 8px; z-index: 1000; animation: fadeIn 0.3s ease-out 0.4s both; }
+.listItem { display: flex; align-items: center; padding: 12px; width: 100%; text-align: left; border-radius: 12px; transition: background 0.2s; }
+.listItem:hover { background: rgba(0,0,0,0.05); }
+.listItemBorder { border-bottom: 1px solid rgba(0,0,0,0.1); border-radius: 0; }
+.listItemDot { width: 10px; height: 10px; border-radius: 5px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); margin-right: 12px; flex-shrink: 0; }
+.listItemContent { flex: 1; }
+.listItemTitle { display: block; color: #1e293b; font-size: 15px; font-weight: 600; }
+.listItemDate { display: block; color: #64748b; font-size: 12px; margin-top: 2px; }
+.listItemArrow { color: #94a3b8; font-size: 18px; }
