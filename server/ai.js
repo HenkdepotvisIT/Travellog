@@ -195,7 +195,7 @@ Adventure Details:
 - Dates: ${adventure.start_date} to ${adventure.end_date}
 - Duration: ${adventure.duration} days
 - Distance traveled: ${adventure.distance} km
-- Places visited: ${adventure.stop_points?.map(s => \`\${s.name} (\${s.photos} photos)\`).join(', ') || 'Various locations'}
+- Places visited: ${adventure.stop_points?.map(s => s.name + ' (' + s.photos + ' photos)').join(', ') || 'Various locations'}
 
 Generate 4-6 highlight bullet points for this adventure. Each highlight should:
 - Start with an action verb (Explored, Discovered, Witnessed, Experienced, etc.)
@@ -263,7 +263,7 @@ Adventure Details:
 - Distance traveled: ${adventure.distance} km
 - Number of stops: ${adventure.stops}
 - Photos taken: ${adventure.media_count}
-- Places visited: ${adventure.stop_points?.map(s => \`\${s.name} (\${s.photos} photos)\`).join(', ') || 'Various locations'}
+- Places visited: ${adventure.stop_points?.map(s => s.name + ' (' + s.photos + ' photos)').join(', ') || 'Various locations'}
 
 ${stylePrompts[style] || stylePrompts.narrative}
 
